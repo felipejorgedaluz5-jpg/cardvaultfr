@@ -1,0 +1,238 @@
+<!-- visível quando NÃO logado -->
+<div class="card" *ngIf="!logado">
+  <h2>Área Restrita</h2>
+  <p style="font-size:0.9rem;color:var(--text-dim);">
+    A sua coleção e baralhos ficam vinculados à sua conta. Faça login ou cadastre-se para começar.
+  </p>
+  <a class="add" style="width:100%;display:block;text-align:center;text-decoration:none;box-sizing:border-box;" routerLink="/conta">Entrar / Cadastrar</a>
+</div>
+
+<!-- visível quando logado -->
+<div class="card" *ngIf="logado">
+
+  <!-- Navegação de Abas -->
+  <div class="abas-nav" style="display:flex; gap:10px; margin-bottom: 20px; border-bottom: 2px solid var(--border); padding-bottom: 10px;">
+    <button class="btn-aba" [class.active]="aba() === 'colecao'" (click)="mudarAba('colecao')">Minha Coleção</button>
+    <button class="btn-aba" [class.active]="aba() === 'baralhos'" (click)="mudarAba('baralhos')">Meus Baralhos</button>
+  </div>
+
+  <!-- ABA: COLEÇÃO -->
+  <div *ngIf="aba() === 'colecao'">
+    <div style="display:flex; justify-content:flex-end; align-items:center; gap:14px; margin-bottom:12px;">
+      <button class="btn-secundario" [disabled]="atualizandoPrecos() || colecao.length === 0" (click)="atualizarPrecos(true)">
+        {{ atualizandoPrecos() ? 'Atualizando...' : '↻ Atualizar preços' }}
+      </button>
+      <label class="toggle-valores">
+        <input type="checkbox" [checked]="mostrarValores()" (change)="toggleMostrarValores()">
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+        <span>Mostrar valores</span>
+      </label>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:12px;">
+      <select class="filtro" [(ngModel)]="filtroLingua" (change)="carregarFiltrosIniciais()" style="margin:0;">
+        <option value="pt">Português</option>
+        <option value="en">Inglês</option>
+      </select>
+      <select class="filtro" [(ngModel)]="filtroTipo" style="margin:0;">
+        <option value="">Todos os Tipos</option>
+        <optgroup label="Pokémon">
+          <option *ngFor="let t of tipos" [value]="t">{{ t }}</option>
+        </optgroup>
+        <optgroup label="Treinador">
+          <option *ngFor="let tt of tiposTreinador" [value]="'trainer:' + tt.valor">{{ tt.label }}</option>
+        </optgroup>
+      </select>
+      <select class="filtro" [(ngModel)]="filtroExpansao" style="margin:0;">
+        <option value="">Todas as Expansões</option>
+        <option *ngFor="let s of expansoes" [value]="s.id">{{ s.name }}</option>
+      </select>
+    </div>
+
+    <div class="busca-wrap busca-solo">
+      <input type="text" placeholder="Procurar carta..." autocomplete="off"
+             [(ngModel)]="novoNomeColecao" (input)="buscarCartas('colecao')" (focus)="buscarCartas('colecao')">
+      <div class="dropdown" [class.show]="mostrarDropdownColecao">
+        <div class="empty-msg" *ngIf="dropdownColecao.length === 0">Nenhuma carta encontrada.</div>
+        <ng-container *ngFor="let c of dropdownColecao; let i = index">
+          <div *ngIf="ehNovoGrupo(dropdownColecao, i)"
+               style="padding:4px 10px; background:var(--surface-3); font-size:0.75rem; font-weight:600; color:var(--gold-soft); border-bottom:1px solid var(--border);">
+            Expansão: {{ c.setName }}
+          </div>
+          <div class="item" (click)="selecionarCarta('colecao', c)">
+            <img [src]="imagemBaixa(c)" [alt]="c.name" style="width:32px;height:auto;border-radius:4px;" (error)="aoFalharImagem($event, 32, 45)">
+            <span>{{ c.name }}</span>
+          </div>
+        </ng-container>
+      </div>
+    </div>
+
+    <ul id="listaColecao">
+      <li class="carta-item" *ngFor="let c of colecaoFiltrada">
+        <button class="btn-remover-carta" title="Remover da coleção" (click)="removerDaColecao(c)">X</button>
+        <img [src]="c.imagem" [alt]="c.nome" loading="lazy" class="clicavel" (error)="aoFalharImagem($event, 130, 180)" (click)="abrirImagem(c.imagem, c.nome)">
+        <div class="nome" [title]="c.nome">{{ c.nome }}</div>
+        <div class="qtd-control">
+          <button class="btn-qtd" (click)="decrementarColecao(c)" aria-label="Diminuir quantidade">−</button>
+          <span class="qtd-valor">{{ c.qtd }}x</span>
+          <button class="btn-qtd" (click)="incrementarColecao(c)" aria-label="Aumentar quantidade">+</button>
+        </div>
+        <div class="preco" *ngIf="mostrarValores()" [class.preco-vazio]="!temPreco(c)" [title]="dicaPreco(c)">{{ textoPreco(c) }}</div>
+      </li>
+    </ul>
+    <p class="empty" *ngIf="colecao.length === 0" style="display:block">A sua coleção está vazia. Adicione uma carta acima.</p>
+    <p class="empty" *ngIf="colecao.length > 0 && colecaoFiltrada.length === 0" style="display:block">Nenhuma carta desta expansão na sua coleção.</p>
+    <div class="total" *ngIf="mostrarValores()">
+      <div class="label" style="font-size:.78rem;font-weight:600;color:var(--text-dim);margin-bottom:4px;">Valor total estimado</div>
+      <div class="value">R$ {{ totalColecao().toFixed(2).replace('.', ',') }}</div>
+      <div *ngIf="cartasSemPreco() > 0" style="font-size:.72rem;color:var(--text-faint);margin-top:4px;">
+        {{ cartasSemPreco() }} carta(s) sem preço de mercado não entram no total.
+      </div>
+    </div>
+  </div>
+
+  <!-- ABA: BARALHOS -->
+  <div *ngIf="aba() === 'baralhos'" [class.baralho-aberto]="baralhoAtivoIndex >= 0">
+    <div class="criar-baralho-row" *ngIf="baralhoAtivoIndex < 0" style="margin-bottom: 15px; display:flex; gap:8px;">
+      <input type="text" [(ngModel)]="nomeNovoBaralho" placeholder="Nome do Baralho" style="flex:1;">
+      <button class="add" (click)="criarBaralho()">Criar</button>
+    </div>
+
+    <div style="display:flex; gap:8px; margin-bottom: 15px;">
+      <select class="filtro" [(ngModel)]="baralhoAtivoIndex" (ngModelChange)="aoTrocarBaralho()" style="width: 100%; margin:0;">
+        <option [ngValue]="-1">Selecione um baralho...</option>
+        <option *ngFor="let b of baralhos; let i = index" [ngValue]="i">{{ b.nome }}</option>
+      </select>
+      <button *ngIf="baralhoAtivoIndex >= 0" class="btn-excluir-baralho" title="Excluir baralho"
+              (click)="excluirBaralho(baralhoAtivoIndex)" aria-label="Excluir baralho">🗑</button>
+    </div>
+
+    <div class="importar-box">
+      <input type="text" [(ngModel)]="codigoImportar" placeholder="Colar link ou código de um baralho compartilhado">
+      <button class="btn-secundario" (click)="importarPorTexto()">Importar</button>
+    </div>
+
+    <div *ngIf="baralhoAtivoIndex >= 0 && baralhos[baralhoAtivoIndex]">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:0.9rem;">
+        <strong>Cartas: <span style="color:var(--gold-soft);">{{ totalCartasBaralho() }}</span>/60</strong>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-secundario" [class.ativo]="mostrarColecaoNoBaralho" (click)="toggleColecaoNoBaralho()">
+            📚 {{ mostrarColecaoNoBaralho ? 'Ocultar coleção' : 'Ver minha coleção' }}
+          </button>
+          <button class="btn-secundario" (click)="compartilharBaralho()">🔗 Compartilhar baralho</button>
+        </div>
+      </div>
+
+      <div class="acoes-baralho">
+        <select class="filtro select-formato" [(ngModel)]="formatoBaralho" (ngModelChange)="fecharVerificacao()" title="Formato usado na verificação" style="margin:0;">
+          <option value="livre">Formato: Livre (todas as cartas)</option>
+          <option value="expandido">Formato: Expandido</option>
+          <option value="standard">Formato: Standard</option>
+        </select>
+        <button class="btn-secundario" [disabled]="verificando() || baralhos[baralhoAtivoIndex].cartas.length === 0" (click)="verificarFormato()">
+          {{ verificando() ? 'Verificando...' : '✔ Verificar formato' }}
+        </button>
+        <button class="btn-secundario" [disabled]="exportando() || baralhos[baralhoAtivoIndex].cartas.length === 0" (click)="exportarTexto()">
+          {{ exportando() ? 'Gerando...' : '📄 Exportar como texto' }}
+        </button>
+      </div>
+
+      <div class="resultado-verificacao" *ngIf="resultadoVerificacao as r" [class.ok]="r.valido" [class.falha]="!r.valido">
+        <div class="resultado-topo">
+          <strong>{{ r.valido ? '✔ Baralho válido no formato ' + nomeFormato : '✖ Baralho fora do formato ' + nomeFormato }}</strong>
+          <button class="btn-fechar-link" (click)="fecharVerificacao()" aria-label="Fechar">×</button>
+        </div>
+        <p class="resultado-ok" *ngIf="r.valido && r.problemas.length === 0">
+          {{ r.total }} cartas, no máximo 4 cópias por nome, com Pokémon Básico{{ formatoBaralho === 'livre' ? '.' : ' e todas legais no ' + nomeFormato + '.' }}
+        </p>
+        <ul class="lista-problemas" *ngIf="r.problemas.length > 0">
+          <li *ngFor="let p of r.problemas" [class.aviso]="p.tipo === 'aviso'">
+            <span class="marca">{{ p.tipo === 'erro' ? '✖' : '⚠' }}</span> {{ p.texto }}
+          </li>
+        </ul>
+      </div>
+
+      <div class="painel-exportar" *ngIf="textoExportado !== null">
+        <div class="resultado-topo">
+          <strong>Lista do baralho (formato Pokémon TCG Live)</strong>
+          <button class="btn-fechar-link" (click)="fecharExportacao()" aria-label="Fechar">×</button>
+        </div>
+        <textarea readonly rows="14" [value]="textoExportado" (focus)="$any($event.target).select()"></textarea>
+        <div class="acoes-baralho" style="margin:8px 0 0;">
+          <button class="btn-secundario" (click)="copiarTextoExportado()">{{ copiadoExport ? '✔ Copiado!' : '📋 Copiar' }}</button>
+          <button class="btn-secundario" (click)="baixarTextoExportado()">⬇ Baixar .txt</button>
+        </div>
+      </div>
+
+      <!-- Painel: escolher cartas direto da coleção -->
+      <div class="painel-colecao" *ngIf="mostrarColecaoNoBaralho">
+        <input type="text" class="filtro-colecao-baralho" [(ngModel)]="filtroColecaoBaralho"
+               placeholder="Filtrar cartas da coleção..." autocomplete="off">
+        <p class="empty" *ngIf="colecao.length === 0" style="display:block">
+          Sua coleção está vazia. Adicione cartas na aba "Minha Coleção".
+        </p>
+        <p class="empty" *ngIf="colecao.length > 0 && colecaoParaBaralho.length === 0" style="display:block">
+          Nenhuma carta encontrada.
+        </p>
+        <div class="grid-colecao-baralho">
+          <div class="carta-item carta-mini" *ngFor="let c of colecaoParaBaralho">
+            <img [src]="c.imagem" [alt]="c.nome" loading="lazy" class="clicavel"
+                 (error)="aoFalharImagem($event, 130, 180)" (click)="abrirImagem(c.imagem, c.nome)">
+            <div class="nome" [title]="c.nome">{{ c.nome }}</div>
+            <div class="uso-colecao">No baralho: {{ qtdNoBaralho(c.nome) }} / {{ qtdNaColecao(c.nome) }}</div>
+            <button class="btn-secundario btn-add-colecao"
+                    [disabled]="qtdNoBaralho(c.nome) >= qtdNaColecao(c.nome)"
+                    (click)="adicionarDaColecao(c)">+ Adicionar</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="link-compartilhar" *ngIf="linkCompartilhar">
+        <span>{{ linkCompartilhar }}</span>
+        <button class="btn-fechar-link" (click)="fecharLinkCompartilhar()" aria-label="Fechar">×</button>
+      </div>
+
+      <div class="add-row" style="grid-template-columns:1fr;">
+        <div class="busca-wrap" style="width:100%;">
+          <input type="text" placeholder="Procurar carta para o baralho..." autocomplete="off"
+                 [(ngModel)]="novoNomeBaralho" (input)="buscarCartas('baralho')" (focus)="buscarCartas('baralho')">
+          <div class="dropdown" [class.show]="mostrarDropdownBaralho">
+            <div class="empty-msg" *ngIf="dropdownBaralho.length === 0">Nenhuma carta encontrada.</div>
+            <ng-container *ngFor="let c of dropdownBaralho; let i = index">
+              <div *ngIf="ehNovoGrupo(dropdownBaralho, i)"
+                   style="padding:4px 10px; background:var(--surface-3); font-size:0.75rem; font-weight:600; color:var(--gold-soft); border-bottom:1px solid var(--border);">
+                Expansão: {{ c.setName }}
+              </div>
+              <div class="item" (click)="selecionarCarta('baralho', c)">
+                <img [src]="imagemBaixa(c)" [alt]="c.name" style="width:32px;height:auto;border-radius:4px;" (error)="aoFalharImagem($event, 32, 45)">
+                <span>{{ c.name }}</span>
+              </div>
+            </ng-container>
+          </div>
+        </div>
+      </div>
+
+      <div id="listaBaralhoGrid">
+        <div class="carta-item" style="padding:6px; position:relative;"
+             *ngFor="let c of baralhos[baralhoAtivoIndex].cartas">
+          <div *ngIf="faltamNaColecao(c) > 0"
+               style="position:absolute; top:-5px; right:-5px; background:var(--danger); color:white; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.4);"
+               [title]="'Faltam ' + faltamNaColecao(c) + ' na coleção!'">!</div>
+          <img [src]="c.imagem" [alt]="c.nome" loading="lazy" class="clicavel" style="margin-bottom:0; width:100%;" (error)="aoFalharImagem($event, 130, 180)" (click)="abrirImagem(c.imagem, c.nome)">
+          <div class="nome" style="margin-top:8px; font-size:0.7rem;">{{ c.nome }}</div>
+          <div class="qtd-control">
+            <button class="btn-qtd" (click)="removerDoBaralho(c.nome)" aria-label="Diminuir quantidade">−</button>
+            <span class="qtd-valor">{{ c.qtd }}x</span>
+            <button class="btn-qtd" (click)="incrementarNoBaralho(c)" aria-label="Aumentar quantidade">+</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<app-image-lightbox *ngIf="imagemExpandida" [url]="imagemExpandida.url" [alt]="imagemExpandida.alt" (fechar)="fecharImagem()"></app-image-lightbox>
+
+<footer class="note">
+  Salvo localmente. Dados, imagens e preços via <a href="https://tcgdex.dev/" target="_blank">TCGdex API</a> (TCGplayer em USD, Cardmarket em EUR quando não houver), convertidos para R$ pela cotação do dia.
+</footer>

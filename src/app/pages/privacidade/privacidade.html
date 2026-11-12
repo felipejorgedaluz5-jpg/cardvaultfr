@@ -1,0 +1,102 @@
+<div class="card politica-header">
+  <span class="eyebrow">Documento legal</span>
+  <h2>Política de Privacidade e Segurança</h2>
+  <p class="atualizado">Última atualização: setembro de 2026</p>
+  <p class="lead">
+    Este documento explica, sem juridiquês, quais dados o CardVault coleta, por que coleta, onde eles ficam
+    guardados e o que você pode fazer a respeito. Ele segue os princípios da Lei Geral de Proteção de Dados
+    (Lei nº 13.709/2018).
+  </p>
+  <div class="resumo-rapido">
+    <strong>Resumo rápido:</strong> coletamos apenas nome, e-mail e senha. Não existe servidor — tudo fica salvo
+    localmente no seu navegador, e nada é enviado para nós ou para terceiros. Você pode baixar uma cópia dos seus
+    dados ou apagar tudo, quando quiser, pela aba <a routerLink="/conta">Conta</a>.
+  </div>
+</div>
+
+<div class="card politica-indice">
+  <h2>Nesta página</h2>
+  <ol class="indice-lista">
+    <li *ngFor="let s of secoes"><a [href]="'#' + s.id">{{ s.titulo }}</a></li>
+  </ol>
+</div>
+
+<div class="card politica-corpo">
+  <section id="coleta">
+    <h3>1. Quais dados coletamos</h3>
+    <p>
+      Para criar e manter sua conta, pedimos três informações: nome, e-mail e senha. Não pedimos telefone,
+      endereço ou documento, porque nada disso é necessário para o CardVault funcionar. Além da conta, guardamos
+      os dados da sua coleção — quais cartas você adicionou e em que quantidade —, já que essa é a própria função
+      do produto.
+    </p>
+  </section>
+
+  <section id="uso">
+    <h3>2. Para que usamos esses dados</h3>
+    <p>
+      Nome e e-mail servem só para identificar sua conta e vincular a coleção a ela. A senha autentica o login.
+      Não usamos nada disso para publicidade, não vendemos para terceiros e não cruzamos com outras bases. O
+      tratamento fica limitado ao que um app de coleção de cartas precisa para funcionar.
+    </p>
+  </section>
+
+  <section id="armazenamento">
+    <h3>3. Onde seus dados ficam guardados</h3>
+    <p>
+      O CardVault é um protótipo acadêmico e, por enquanto, não tem backend. Isso significa que sua conta, sua
+      senha (nunca salva em texto puro) e sua coleção ficam armazenadas localmente, no navegador que você está
+      usando. Nenhuma informação viaja até um servidor nosso ou de terceiros — na prática, os dados existem só no
+      dispositivo onde você usa o app, e trocar de navegador ou limpar os dados do site apaga essas informações.
+    </p>
+  </section>
+
+  <section id="direitos">
+    <h3>4. Seus direitos sobre os dados</h3>
+    <p>
+      A LGPD garante um conjunto de direitos ao titular dos dados, e todos eles ficam disponíveis direto na aba
+      Conta, sem e-mail nem formulário: consultar o que temos sobre você, corrigir informações desatualizadas,
+      baixar uma cópia em JSON (portabilidade) e excluir permanentemente sua conta e sua coleção — o direito ao
+      esquecimento.
+    </p>
+  </section>
+
+  <section id="terceiros">
+    <h3>5. Compartilhamento com terceiros</h3>
+    <p>
+      Não compartilhamos, vendemos ou alugamos dados pessoais para nenhuma empresa, anunciante ou serviço externo.
+      Os preços de lançamentos exibidos no app vêm de fontes públicas de referência, e essa consulta não envolve o
+      envio de nenhum dado seu.
+    </p>
+  </section>
+
+  <section id="seguranca">
+    <h3>6. Medidas de segurança</h3>
+    <p>
+      Sua senha nunca é armazenada em texto puro. Como o projeto ainda está em fase de protótipo, não há
+      infraestrutura de produção — HTTPS de backend, hashing no servidor, tokens de sessão. Preferimos deixar isso
+      explícito aqui a prometer uma segurança que o projeto ainda não tem nesta etapa.
+    </p>
+  </section>
+
+  <section id="alteracoes">
+    <h3>7. Alterações nesta política</h3>
+    <p>
+      Se esta política mudar de forma relevante, atualizamos a data no topo da página. Vale revisá-la de vez em
+      quando, principalmente antes de cadastrar novos dados.
+    </p>
+  </section>
+
+  <section id="contato">
+    <h3>8. Contato</h3>
+    <p>
+      Dúvidas sobre este documento ou sobre como seus dados são tratados podem ser esclarecidas diretamente com a
+      equipe responsável por este projeto acadêmico.
+    </p>
+  </section>
+</div>
+
+<footer class="note">
+  Este material resume os princípios da LGPD aplicados a este protótipo acadêmico e não substitui a leitura da lei
+  nem orientação jurídica profissional.
+</footer>

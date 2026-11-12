@@ -1,0 +1,67 @@
+<!-- visível quando NÃO logado -->
+<div class="card" *ngIf="!auth.currentEmail()">
+  <h2>{{ modo() === 'login' ? 'Entrar' : 'Criar conta' }}</h2>
+
+  <div *ngIf="modo() === 'login'">
+    <label for="loginEmail">E-mail</label>
+    <input type="email" id="loginEmail" name="loginEmail" [(ngModel)]="loginEmail">
+    <label for="loginSenha">Senha</label>
+    <input type="password" id="loginSenha" name="loginSenha" [(ngModel)]="loginSenha">
+    <button class="primary" (click)="fazerLogin()">Entrar</button>
+    <p class="erro" *ngIf="loginErro" style="display:block">{{ loginErro }}</p>
+    <button class="link" (click)="mostrarCadastro()">Não tem conta? Cadastre-se</button>
+    <p class="lgpd-link">
+      Saiba como tratamos seus dados — <a routerLink="/privacidade">Política de Privacidade</a>
+    </p>
+  </div>
+
+  <div *ngIf="modo() === 'cadastro'">
+    <label for="cadNome">Nome</label>
+    <input type="text" id="cadNome" name="cadNome" [(ngModel)]="cadNome">
+    <label for="cadEmail">E-mail</label>
+    <input type="email" id="cadEmail" name="cadEmail" [(ngModel)]="cadEmail">
+    <label for="cadSenha">Senha</label>
+    <input type="password" id="cadSenha" name="cadSenha" [(ngModel)]="cadSenha">
+    <label for="cadSenha2">Confirmar senha</label>
+    <input type="password" id="cadSenha2" name="cadSenha2" [(ngModel)]="cadSenha2">
+
+    <div class="consent">
+      <input type="checkbox" id="consentimento" name="consentimento" [(ngModel)]="consentimento">
+      <label for="consentimento" style="margin:0;font-weight:400;">
+        Li e concordo com o uso dos meus dados conforme descrito no aviso de privacidade abaixo, nos termos da
+        <a routerLink="/privacidade">Política de Privacidade e Segurança</a>.
+      </label>
+    </div>
+
+    <button class="primary" (click)="fazerCadastro()">Criar conta</button>
+    <p class="erro" *ngIf="cadastroErro" style="display:block">{{ cadastroErro }}</p>
+    <button class="link" (click)="mostrarLogin()">Já tem conta? Entrar</button>
+
+    <div class="privacidade">
+      <strong>Aviso de privacidade</strong><br>
+      Coletamos apenas nome, e-mail e senha — o mínimo necessário para identificar sua conta e associar sua coleção
+      a ela. Sua senha nunca é salva em texto puro, e todos os dados ficam
+      <strong>armazenados localmente no seu navegador</strong>, sem envio a nenhum servidor ou terceiro. Detalhes
+      completos na <a routerLink="/privacidade">Política de Privacidade e Segurança</a>.
+    </div>
+  </div>
+</div>
+
+<!-- visível quando logado -->
+<div class="card painel-logado" *ngIf="auth.currentEmail()">
+  <h2>Minha Conta</h2>
+  <div class="linha"><span>Nome</span><strong>{{ auth.nomeExibicao() }}</strong></div>
+  <div class="linha"><span>E-mail</span><strong>{{ auth.currentEmail() }}</strong></div>
+  <div class="linha"><span>Cartas na coleção</span><strong>{{ qtdCartas() }}</strong></div>
+
+  <div class="acoes-conta">
+    <button class="outline" (click)="baixarMeusDados()">⬇ Baixar meus dados (JSON)</button>
+    <button class="link" style="text-align:left;" (click)="sair()">Sair da conta</button>
+    <button class="secondary" (click)="excluirConta()">Excluir minha conta e todos os dados</button>
+  </div>
+</div>
+
+<footer class="note">
+  Protótipo de autenticação local — não representa segurança de produção.
+  Um sistema real precisa de backend com HTTPS, hash de senha no servidor e tokens de sessão.
+</footer>

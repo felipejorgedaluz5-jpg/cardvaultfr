@@ -1,0 +1,43 @@
+<div class="card">
+  <h2>Lançamentos em alta</h2>
+  <div class="carousel-wrap">
+    <button class="carousel-btn" (click)="scrollCarousel(-1)" aria-label="Ver anteriores">‹</button>
+    <div class="carousel" #carouselEl>
+      <div class="carousel-item" *ngFor="let c of cartasPopulares()">
+        <img [src]="imagemAlta(c)" [alt]="c.name" loading="lazy" class="clicavel" (error)="aoFalharImagem($event, 130, 180)" (click)="abrirImagem(imagemAlta(c), c.name)">
+        <span>{{ c.name }}</span>
+      </div>
+      <p class="empty" *ngIf="!carregandoPopulares() && cartasPopulares().length === 0" style="display:block">Não foi possível carregar os lançamentos agora.</p>
+    </div>
+    <button class="carousel-btn" (click)="scrollCarousel(1)" aria-label="Ver próximas">›</button>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Comparador de Preços</h2>
+
+  <div class="filtros-precos">
+    <input type="search" placeholder="Buscar carta... ex: Charizard" [(ngModel)]="termo">
+    <select class="filtro" [(ngModel)]="filtroExpansao">
+      <option value="">Todas as Expansões</option>
+      <option *ngFor="let s of expansoes()" [value]="s.id">{{ s.name }}</option>
+    </select>
+  </div>
+
+  <table>
+    <thead><tr><th></th><th>Carta</th><th>Loja</th><th>Preço</th></tr></thead>
+    <tbody>
+      <tr *ngFor="let item of filtrados">
+        <td><img class="thumb clicavel" [src]="imagemItem(item)" [alt]="item.carta" loading="lazy" (error)="aoFalharImagem($event, 60, 84)" (click)="abrirImagem(imagemAltaItem(item), item.carta)"></td>
+        <td>{{ item.carta }}</td>
+        <td class="loja">{{ item.loja }}</td>
+        <td class="preco">R$ {{ item.preco.toFixed(2).replace('.', ',') }}</td>
+      </tr>
+    </tbody>
+  </table>
+  <p class="empty" *ngIf="filtrados.length === 0" style="display:block">Nenhuma carta encontrada.</p>
+</div>
+
+<app-image-lightbox *ngIf="imagemExpandida" [url]="imagemExpandida.url" [alt]="imagemExpandida.alt" (fechar)="fecharImagem()"></app-image-lightbox>
+
+<footer class="note">Preços de exemplo para demonstração — em produção viriam de scraping/API das lojas. Fotos e expansões via <a href="https://tcgdex.dev/" target="_blank">TCGdex API</a>.</footer>

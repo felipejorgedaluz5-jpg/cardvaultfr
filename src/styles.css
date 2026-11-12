@@ -1,0 +1,57 @@
+:root{
+  --bg:#0B0D10;
+  --surface:#14171C;
+  --surface-2:#1B1F25;
+  --surface-3:#22262D;
+  --border:#262B32;
+  --border-strong:#3A414B;
+
+  --text:#ECEEF1;
+  --text-dim:#98A0AB;
+  --text-faint:#5A616B;
+
+  /* dourado é o único destaque - usar só em valor/foco/ação primária */
+  --gold:#C9A227;
+  --gold-soft:#E3C468;
+  --gold-dim:rgba(201,162,39,.35);
+  --gold-wash:rgba(201,162,39,.08);
+
+  --danger:#E5484D;
+  --danger-wash:rgba(229,72,77,.1);
+
+  --radius-lg:10px;
+  --radius:6px;
+
+  --font-display:'Sora', sans-serif;
+  --font-body:'Inter', sans-serif;
+  --font-mono:'JetBrains Mono', monospace;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0; min-height:100%;}
+body{
+  background:var(--bg);
+  font-family:var(--font-body); color:var(--text);
+  padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px);
+  -webkit-font-smoothing:antialiased;
+}
+a{ color:inherit; }
+::selection{ background:var(--gold-dim); color:var(--text); }
+:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+
+footer.note{ text-align:center; font-size:0.78rem; color:var(--text-faint); margin-top:10px; line-height:1.6; }
+footer.note a{ color:var(--text-dim); text-decoration:underline; text-underline-offset:2px; }
+
+.card{
+  background:var(--surface); color:var(--text); border-radius:var(--radius-lg); border:1px solid var(--border);
+  box-shadow:0 1px 2px rgba(0,0,0,.4);
+  padding:28px 30px; margin-bottom:20px;
+}
+.card h2{
+  font-family:var(--font-display); font-weight:600; font-size:1.18rem; margin:0 0 18px; letter-spacing:-0.01em;
+  color:var(--text); border-bottom:1px solid var(--border); padding-bottom:14px;
+}
+
+@media (max-width:600px){
+  .card{ padding:20px; }
+}

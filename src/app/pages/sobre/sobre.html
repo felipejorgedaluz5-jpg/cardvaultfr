@@ -1,0 +1,48 @@
+<div class="card sobre-hero">
+  <span class="eyebrow">Sobre o CardVault</span>
+  <h2>Um cofre pra quem leva colecionar a sério.</h2>
+  <p class="lead">
+    CardVault nasceu de um incômodo bem específico: colecionador de TCG vive com informação espalhada entre
+    planilha, print de grupo de WhatsApp e a memória de qual loja tinha o menor preço na semana passada.
+    Construímos o app que a gente mesmo sentia falta de usar.
+  </p>
+</div>
+
+<div class="card">
+  <h2>Como começou</h2>
+  <p class="lead">
+    O projeto nasceu como trabalho acadêmico, mas o problema que ele resolve é real: comparar preços entre lojas,
+    manter o controle do que já está na coleção e decidir o que falta pra fechar um baralho toma tempo demais
+    quando está tudo espalhado. Juntamos lançamentos, coleção e conta num único lugar, com o mínimo de dado
+    pessoal possível envolvido no caminho.
+  </p>
+  <p class="lead">
+    Ainda é um protótipo, então algumas partes seguem simples de propósito — mas as decisões sobre como tratamos
+    dados pessoais foram levadas a sério desde a primeira linha de código. Isso está detalhado na nossa
+    <a routerLink="/privacidade">Política de Privacidade e Segurança</a>.
+  </p>
+</div>
+
+<div class="card">
+  <h2>O que guia as decisões do produto</h2>
+  <div class="grid-valores">
+    <div class="valor-card" *ngFor="let v of valores">
+      <h3>{{ v.titulo }}</h3>
+      <p>{{ v.descricao }}</p>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Sob o capô</h2>
+  <p class="lead">
+    O CardVault é construído em Angular. Não existe backend: a conta, a coleção e as preferências ficam salvas
+    localmente, no navegador de quem usa. É uma limitação proposital para esta fase do projeto — e também o
+    motivo de conseguirmos garantir que nenhum dado pessoal sai do seu dispositivo.
+  </p>
+  <div class="tags-stack">
+    <span class="tag" *ngFor="let t of stack">{{ t }}</span>
+  </div>
+</div>
+
+<footer class="note">Projeto acadêmico, sem fins comerciais — feito por colecionadores, pra colecionadores.</footer>

@@ -1,0 +1,39 @@
+.lightbox-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.82);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 24px;
+  box-sizing: border-box;
+  cursor: zoom-out;
+  animation: lightbox-fade 0.15s ease-out;
+}
+
+.lightbox-overlay img {
+  max-width: min(90vw, 440px);
+  max-height: 85vh;
+  border-radius: 14px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  cursor: default;
+}
+
+.lightbox-fechar {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: #fff;
+  font-size: 2rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 6px 12px;
+}
+
+@keyframes lightbox-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

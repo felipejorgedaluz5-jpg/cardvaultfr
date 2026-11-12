@@ -1,0 +1,4 @@
+<div class="lightbox-overlay" (click)="fechar.emit()">
+  <button class="lightbox-fechar" (click)="fechar.emit()" aria-label="Fechar">×</button>
+  <img [src]="url" [alt]="alt" (click)="$event.stopPropagation()">
+</div>

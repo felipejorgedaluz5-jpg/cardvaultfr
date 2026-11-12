@@ -1,0 +1,78 @@
+:host{ display:block; }
+
+.app-shell{
+  display:flex;
+  min-height:100vh;
+  min-height:100dvh;
+}
+
+.content-area{ flex:1; min-width:0; background:var(--bg); }
+
+main{
+  max-width:1600px;
+  margin:0 auto;
+  padding:44px clamp(24px, 4vw, 64px) 72px;
+}
+
+.sidebar{
+  width:272px; flex:0 0 272px;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  padding:32px 0 24px;
+  display:flex; flex-direction:column; gap:8px;
+  position:sticky; top:0; height:100vh; height:100dvh;
+  overflow-y:auto;
+}
+
+.brand{ padding:0 26px 24px; border-bottom:1px solid var(--border); margin-bottom:18px; }
+.brand .wordmark{
+  font-family:var(--font-display); font-weight:700; font-size:1.5rem;
+  letter-spacing:-0.01em; margin:0; color:var(--text);
+  display:inline-block; position:relative; padding-bottom:12px;
+}
+/* risquinho dourado embaixo do nome */
+.brand .wordmark::after{
+  content:''; position:absolute; left:0; bottom:0; width:32px; height:3px; background:var(--gold); border-radius:2px;
+}
+.brand p{ margin:12px 0 0; color:var(--text-dim); font-size:0.84rem; line-height:1.55; }
+
+.side-nav{ display:flex; flex-direction:column; gap:3px; padding:0 14px; flex:1; }
+.side-nav a{
+  display:flex; align-items:center; gap:13px;
+  padding:12px 14px; border-radius:var(--radius);
+  color:var(--text-dim); text-decoration:none; font-size:0.9rem; font-weight:500;
+  border-left:2px solid transparent;
+  transition:background .15s ease, color .15s ease, border-color .15s ease;
+}
+.side-nav a svg{ width:19px; height:19px; flex:0 0 auto; }
+.side-nav a:hover{ color:var(--text); background:var(--surface-2); }
+.side-nav a.active{ color:var(--gold-soft); background:var(--gold-wash); border-left-color:var(--gold); }
+
+@media (max-width:1100px){
+  main{ padding:32px 28px 56px; }
+}
+
+@media (min-width:1400px){
+  .sidebar{ width:296px; flex-basis:296px; }
+}
+
+/* abaixo de 860px a sidebar sobe e vira barra de abas */
+@media (max-width:860px){
+  .app-shell{ flex-direction:column; }
+  .sidebar{
+    width:100%; flex:0 0 auto; position:static; height:auto;
+    border-right:none; border-bottom:1px solid var(--border);
+    padding:20px 0 0;
+  }
+  .brand{ text-align:center; padding:0 16px 16px; }
+  .brand .wordmark::after{ left:50%; transform:translateX(-50%); }
+  .side-nav{
+    flex-direction:row; overflow-x:auto; gap:4px; padding:0 8px 10px;
+  }
+  .side-nav a{
+    flex:0 0 auto; white-space:nowrap; border-left:none; border-radius:0;
+    border-bottom:2px solid transparent; background:transparent;
+  }
+  .side-nav a.active{ background:transparent; border-left-color:transparent; border-bottom-color:var(--gold); }
+  main{ padding:24px 16px 48px; }
+}
