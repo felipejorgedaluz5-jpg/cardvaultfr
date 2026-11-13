@@ -1,0 +1,213 @@
+<div class="card">
+  <h2>Torneio suíço</h2>
+
+  <div class="abas" role="tablist">
+    @for (item of abas; track item.id) {
+      <button
+        type="button"
+        role="tab"
+        class="aba"
+        [class.ativa]="aba() === item.id"
+        [attr.aria-selected]="aba() === item.id"
+        (click)="aba.set(item.id)"
+      >
+        {{ item.rotulo }}
+      </button>
+    }
+  </div>
+
+  <!-- ABA: JOGADORES -->
+  @if (aba() === 'jogadores') {
+    <section class="painel">
+      <form class="linha-form" (submit)="adicionarVarios($event, qtd)">
+        <label class="campo">
+          <span>Adicionar jogadores por número</span>
+          <input #qtd id="torneio-qtd" type="number" min="1" max="256" inputmode="numeric" placeholder="ex.: 16" />
+        </label>
+        <button type="submit" class="btn-primario">Adicionar</button>
+      </form>
+
+      <form class="linha-form" (submit)="adicionarNome($event, nome)">
+        <label class="campo">
+          <span>Ou adicionar um jogador pelo nome</span>
+          <input #nome id="torneio-nome" type="text" maxlength="40" autocomplete="off" placeholder="Nome" />
+        </label>
+        <button type="submit" class="btn-secundario">Adicionar</button>
+      </form>
+
+      <div class="bloco">
+        <div class="bloco-topo">
+          <h3>{{ torneio.jogadores().length }} jogadores</h3>
+        </div>
+
+        @if (torneio.jogadores().length === 0) {
+          <p class="dica">Nenhum jogador ainda. Digite um número acima para criar a lista de uma vez.</p>
+        } @else {
+          <ul class="lista-jogadores">
+            @for (j of torneio.jogadores(); track j.id) {
+              <li>
+                <span class="nome-jogador" [class.saiu]="j.saiu">{{ j.nome }}</span>
+                @if (torneio.rodadas().length > 0) {
+                  <button type="button" class="btn-mini" (click)="torneio.alternarSaida(j.id)">
+                    {{ j.saiu ? 'Voltar' : 'Sair' }}
+                  </button>
+                } @else {
+                  <button type="button" class="btn-mini perigo" (click)="torneio.removerJogador(j.id)">Remover</button>
+                }
+              </li>
+            }
+          </ul>
+        }
+      </div>
+
+      @if (torneio.rodadas().length === 0) {
+        <div class="faixa">
+          <div>
+            <strong>{{ torneio.recomendadas() }} rodadas suíças</strong>
+            <div class="dica">Recomendado para {{ torneio.ativos().length }} jogadores</div>
+          </div>
+          <button type="button" class="btn-primario" [disabled]="torneio.ativos().length < 2" (click)="iniciarRodada()">
+            Começar rodada 1
+          </button>
+        </div>
+      }
+
+      @if (torneio.jogadores().length > 0 || torneio.rodadas().length > 0) {
+        @if (confirmandoReinicio()) {
+          <div class="faixa">
+            <span>Apagar todos os jogadores e rodadas?</span>
+            <div class="acoes">
+              <button type="button" class="btn-mini perigo" (click)="reiniciar()">Apagar</button>
+              <button type="button" class="btn-mini" (click)="confirmandoReinicio.set(false)">Cancelar</button>
+            </div>
+          </div>
+        } @else {
+          <div>
+            <button type="button" class="btn-mini" (click)="confirmandoReinicio.set(true)">Reiniciar torneio</button>
+          </div>
+        }
+      }
+    </section>
+  }
+
+  <!-- ABA: RODADAS -->
+  @if (aba() === 'rodadas') {
+    <section class="painel">
+      @if (torneio.rodadas().length === 0) {
+        <p class="dica">Nenhuma rodada ainda. Adicione os jogadores e comece a rodada 1.</p>
+      } @else {
+        <div class="chips">
+          @for (r of torneio.rodadas(); track $index) {
+            <button
+              type="button"
+              class="chip"
+              [class.ativa]="$index === indiceRodada()"
+              [attr.aria-pressed]="$index === indiceRodada()"
+              (click)="escolherRodada($index)"
+            >
+              Rodada {{ $index + 1 }}
+            </button>
+          }
+        </div>
+
+        @for (m of mesas(); track m.indice) {
+          <div class="mesa">
+            <div class="mesa-titulo">Mesa {{ m.mesa }}</div>
+            <div class="resultados">
+              <button
+                type="button"
+                class="res"
+                [class.sel]="m.resultado === 'a'"
+                [attr.aria-pressed]="m.resultado === 'a'"
+                (click)="definir(m.indice, 'a')"
+              >
+                {{ m.a }}
+              </button>
+              <button
+                type="button"
+                class="res empate"
+                [class.sel]="m.resultado === 'e'"
+                [attr.aria-pressed]="m.resultado === 'e'"
+                (click)="definir(m.indice, 'e')"
+              >
+                Empate
+              </button>
+              <button
+                type="button"
+                class="res"
+                [class.sel]="m.resultado === 'b'"
+                [attr.aria-pressed]="m.resultado === 'b'"
+                (click)="definir(m.indice, 'b')"
+              >
+                {{ m.b }}
+              </button>
+            </div>
+          </div>
+        }
+
+        @for (nomeFolga of folgas(); track nomeFolga) {
+          <div class="mesa folga">
+            <div class="mesa-titulo">Folga</div>
+            <div>{{ nomeFolga }} tem folga (conta como vitória).</div>
+          </div>
+        }
+
+        @if (ehUltimaRodada()) {
+          <div class="faixa">
+            <div>
+              <strong>{{ pendentes() > 0 ? pendentes() + ' resultado(s) faltando' : 'Todos os resultados lançados' }}</strong>
+              <div class="dica">
+                @if (metaAtingida()) {
+                  Rodadas recomendadas concluídas. Veja a classificação.
+                } @else {
+                  Rodada {{ torneio.rodadas().length }} de {{ torneio.recomendadas() }} recomendadas
+                }
+              </div>
+            </div>
+            <button type="button" class="btn-primario" [disabled]="pendentes() > 0" (click)="iniciarRodada()">
+              Parear rodada {{ torneio.rodadas().length + 1 }}
+            </button>
+          </div>
+        }
+      }
+    </section>
+  }
+
+  <!-- ABA: CLASSIFICAÇÃO -->
+  @if (aba() === 'classificacao') {
+    <section class="painel">
+      @if (torneio.rodadas().length === 0) {
+        <p class="dica">A classificação aparece depois do primeiro resultado lançado.</p>
+      } @else {
+        <div class="tabela-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th class="num">#</th>
+                <th>Jogador</th>
+                <th class="num">Pts</th>
+                <th class="num">V-D-E</th>
+                <th class="num">OMW%</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (l of torneio.classificacao(); track l.id; let i = $index) {
+                <tr [class.lider]="i === 0">
+                  <td class="num apagado">{{ i + 1 }}</td>
+                  <td class="col-nome" [class.apagado]="l.saiu">{{ l.nome }}{{ l.saiu ? ' (saiu)' : '' }}</td>
+                  <td class="num"><strong>{{ l.pontos }}</strong></td>
+                  <td class="num">{{ l.vitorias }}-{{ l.derrotas }}-{{ l.empates }}</td>
+                  <td class="num">{{ porcentagem(l.omw) }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <p class="dica">
+          Vitória = 3 pontos, empate = 1, folga = vitória. O desempate é a % de vitórias dos adversários
+          (OMW%, com mínimo de 33,3% por adversário).
+        </p>
+      }
+    </section>
+  }
+</div>
