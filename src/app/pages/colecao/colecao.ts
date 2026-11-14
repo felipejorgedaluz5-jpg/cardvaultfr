@@ -5,11 +5,28 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { ImageLightbox } from '../../shared/image-lightbox/image-lightbox';
 
+/** NM = quase nova, LP = pouco usada, MP = moderadamente usada, HP = muito usada, DMG = danificada */
+export type Condicao = 'NM' | 'LP' | 'MP' | 'HP' | 'DMG';
+
+/**
+ * Condições e quanto cada uma vale em relação ao preço de mercado (que é de carta quase nova).
+ * As APIs de preço não separam por condição, então os fatores são estimativas: ajuste aqui.
+ */
+export const CONDICOES: { sigla: Condicao; nome: string; fator: number }[] = [
+  { sigla: 'NM', nome: 'Quase nova (NM)', fator: 1 },
+  { sigla: 'LP', nome: 'Pouco usada (LP)', fator: 0.85 },
+  { sigla: 'MP', nome: 'Moderadamente usada (MP)', fator: 0.7 },
+  { sigla: 'HP', nome: 'Muito usada (HP)', fator: 0.5 },
+  { sigla: 'DMG', nome: 'Danificada (DMG)', fator: 0.3 },
+];
+
 export interface Carta {
   id: string;
   nome: string;
-  /** preço unitário em R$ (0 enquanto não houver preço de mercado) */
+  /** preço unitário de mercado em R$, base quase nova (0 enquanto não houver preço) */
   valor: number;
+  /** condição da carta; ausente em dados antigos, onde vale como NM */
+  condicao?: Condicao;
   imagem: string;
   qtd: number;
   /** de onde veio o preço; ausente = ainda não consultado */
@@ -113,6 +130,10 @@ export class Colecao {
   codigoBaralhoPendente: string | null = null;
   codigoImportar = '';
   linkCompartilhar: string | null = null;
+
+  readonly condicoes = CONDICOES;
+  /** condição aplicada às cartas que forem adicionadas à coleção */
+  condicaoNova: Condicao = 'NM';
 
   novoNomeColecao = '';
   dropdownColecao: CartaApi[] = [];
@@ -229,10 +250,11 @@ export class Colecao {
   private consolidarQuantidades(cartas: Carta[]): Carta[] {
     const agrupadas = new Map<string, Carta>();
     for (const c of cartas) {
-      const chave = c.id || c.nome;
+      const condicao: Condicao = c.condicao ?? 'NM';
+      const chave = `${c.id || c.nome}|${condicao}`;
       const existente = agrupadas.get(chave);
       if (existente) existente.qtd += c.qtd ?? 1;
-      else agrupadas.set(chave, { ...c, qtd: c.qtd ?? 1 });
+      else agrupadas.set(chave, { ...c, condicao, qtd: c.qtd ?? 1 });
     }
     return [...agrupadas.values()];
   }
@@ -392,17 +414,50 @@ export class Colecao {
     return c.fonte === 'tcgplayer' || c.fonte === 'cardmarket';
   }
 
+  /** fração do preço de mercado que a condição da carta vale (NM = 1) */
+  fatorCondicao(c: Carta): number {
+    return CONDICOES.find((x) => x.sigla === (c.condicao ?? 'NM'))?.fator ?? 1;
+  }
+
+  /** preço de uma unidade em R$, já ajustado pela condição */
+  valorUnitario(c: Carta): number {
+    return Math.round(c.valor * this.fatorCondicao(c) * 100) / 100;
+  }
+
+  /** muda a condição da carta; se já existir outra linha igual nessa condição, soma as quantidades */
+  trocarCondicao(carta: Carta, nova: Condicao): void {
+    if ((carta.condicao ?? 'NM') === nova) return;
+    const igual = this.colecao.find((item) => item !== carta && item.id === carta.id && (item.condicao ?? 'NM') === nova);
+    if (igual) {
+      igual.qtd += carta.qtd;
+      const idx = this.colecao.indexOf(carta);
+      if (idx > -1) this.colecao.splice(idx, 1);
+    } else {
+      carta.condicao = nova;
+    }
+    this.salvarDados();
+  }
+
+  get resumoFatores(): string {
+    return CONDICOES.filter((x) => x.fator !== 1)
+      .map((x) => `${x.sigla} ${Math.round(x.fator * 100)}%`)
+      .join(', ');
+  }
+
   textoPreco(c: Carta): string {
     if (this.carregandoPrecos.has(c.id)) return 'Buscando preço...';
     if (!this.temPreco(c)) return 'Sem preço';
-    return 'R$ ' + (c.valor * c.qtd).toFixed(2).replace('.', ',');
+    return 'R$ ' + (this.valorUnitario(c) * c.qtd).toFixed(2).replace('.', ',');
   }
 
   dicaPreco(c: Carta): string {
     if (!this.temPreco(c) || c.precoOriginal == null) return 'Sem preço de mercado disponível para esta carta';
     const fonte = c.fonte === 'tcgplayer' ? 'TCGplayer' : 'Cardmarket';
     const simbolo = c.moeda === 'USD' ? 'US$' : '€';
-    return `${fonte}: ${simbolo} ${c.precoOriginal.toFixed(2).replace('.', ',')} por unidade`;
+    const base = `${fonte}: ${simbolo} ${c.precoOriginal.toFixed(2).replace('.', ',')} por unidade (quase nova)`;
+    const fator = this.fatorCondicao(c);
+    if (fator === 1) return base;
+    return `${base}. ${c.condicao} = ${Math.round(fator * 100)}% desse preço`;
   }
 
   cartasSemPreco(): number {
@@ -410,7 +465,7 @@ export class Colecao {
   }
 
   totalColecao(): number {
-    return this.colecao.reduce((soma, c) => soma + c.valor * c.qtd, 0);
+    return this.colecao.reduce((soma, c) => soma + this.valorUnitario(c) * c.qtd, 0);
   }
 
   buscarCartas(contexto: Contexto): void {
@@ -557,14 +612,22 @@ export class Colecao {
       this.mostrarDropdownColecao = false;
       this.novoNomeColecao = '';
 
-      const existente = this.colecao.find((item) => item.id === c.id);
+      const condicao = this.condicaoNova;
+      const existente = this.colecao.find((item) => item.id === c.id && (item.condicao ?? 'NM') === condicao);
       if (existente) {
         existente.qtd++;
       } else {
+        // a mesma carta em outra condição já tem preço de mercado: reaproveita em vez de buscar de novo
+        const irma = this.colecao.find((item) => item.id === c.id && item.fonte);
         this.colecao.push({
           id: c.id,
           nome: c.name,
-          valor: 0,
+          valor: irma ? irma.valor : 0,
+          condicao,
+          fonte: irma?.fonte,
+          moeda: irma?.moeda,
+          precoOriginal: irma?.precoOriginal,
+          precoAtualizadoEm: irma?.precoAtualizadoEm,
           imagem: imagemAlta || 'https://placehold.co/130x180?text=?',
           qtd: 1,
         });

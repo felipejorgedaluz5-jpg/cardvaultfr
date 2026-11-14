@@ -49,6 +49,13 @@
       </select>
     </div>
 
+    <label class="condicao-nova">
+      <span>Condição das cartas que você adicionar</span>
+      <select class="filtro" [(ngModel)]="condicaoNova" style="margin:0;">
+        <option *ngFor="let o of condicoes" [value]="o.sigla">{{ o.nome }}</option>
+      </select>
+    </label>
+
     <div class="busca-wrap busca-solo">
       <input type="text" placeholder="Procurar carta..." autocomplete="off"
              [(ngModel)]="novoNomeColecao" (input)="buscarCartas('colecao')" (focus)="buscarCartas('colecao')">
@@ -72,6 +79,10 @@
         <button class="btn-remover-carta" title="Remover da coleção" (click)="removerDaColecao(c)">X</button>
         <img [src]="c.imagem" [alt]="c.nome" loading="lazy" class="clicavel" (error)="aoFalharImagem($event, 130, 180)" (click)="abrirImagem(c.imagem, c.nome)">
         <div class="nome" [title]="c.nome">{{ c.nome }}</div>
+        <select class="select-condicao" [ngModel]="c.condicao ?? 'NM'" (ngModelChange)="trocarCondicao(c, $event)"
+                [attr.aria-label]="'Condição de ' + c.nome">
+          <option *ngFor="let o of condicoes" [value]="o.sigla">{{ o.nome }}</option>
+        </select>
         <div class="qtd-control">
           <button class="btn-qtd" (click)="decrementarColecao(c)" aria-label="Diminuir quantidade">−</button>
           <span class="qtd-valor">{{ c.qtd }}x</span>
@@ -87,6 +98,9 @@
       <div class="value">R$ {{ totalColecao().toFixed(2).replace('.', ',') }}</div>
       <div *ngIf="cartasSemPreco() > 0" style="font-size:.72rem;color:var(--text-faint);margin-top:4px;">
         {{ cartasSemPreco() }} carta(s) sem preço de mercado não entram no total.
+      </div>
+      <div style="font-size:.72rem;color:var(--text-faint);margin-top:4px;">
+        Preço de mercado é de carta quase nova. Outras condições valem uma fração estimada: {{ resumoFatores }}.
       </div>
     </div>
   </div>

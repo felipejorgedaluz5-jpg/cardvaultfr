@@ -100,6 +100,7 @@ export class AuthService {
     try {
       localStorage.removeItem('cardvault_colecao_' + email);
       localStorage.removeItem('cardvault_baralhos_' + email);
+      localStorage.removeItem('cardvault_fichario_' + email);
     } catch {
       /* ignora */
     }

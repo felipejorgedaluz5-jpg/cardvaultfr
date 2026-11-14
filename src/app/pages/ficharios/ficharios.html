@@ -1,0 +1,371 @@
+@if (!logado()) {
+  <div class="card">
+    <h2>Área Restrita</h2>
+    <p class="dica">Seus fichários ficam vinculados à sua conta. Faça login ou cadastre-se para criar o primeiro.</p>
+    <a class="botao-largo" routerLink="/conta">Entrar / Cadastrar</a>
+  </div>
+} @else {
+  <div class="card">
+    @if (dados.erroAoSalvar()) {
+      <div class="aviso-erro" role="alert">
+        O navegador não deixou salvar as últimas alterações (provavelmente falta de espaço). Use capas menores ou exclua
+        fichários que não usa mais.
+      </div>
+    }
+
+    <!-- ===================== LISTA ===================== -->
+    @if (tela() === 'lista') {
+      <div class="topo">
+        <h2>Fichários</h2>
+        <button type="button" class="btn-primario" (click)="abrirFormulario()">+ Novo fichário</button>
+      </div>
+
+      @if (dados.fichas().length === 0) {
+        <div class="vazio">
+          <p><strong>Você ainda não tem fichários.</strong></p>
+          <p class="dica">
+            Crie um com o mesmo tamanho do seu fichário de verdade e distribua nele as cartas da sua coleção, página por
+            página.
+          </p>
+        </div>
+      } @else {
+        <div class="busca">
+          <label for="fich-busca">Buscar uma carta nos fichários</label>
+          <input
+            #campoBusca
+            id="fich-busca"
+            type="search"
+            autocomplete="off"
+            placeholder="Nome da carta, ex.: Pikachu"
+            [value]="termo()"
+            (input)="termo.set(campoBusca.value)"
+          />
+        </div>
+
+        @if (termo().trim()) {
+          <div class="resultados" aria-live="polite">
+            @if (totalResultados() === 0) {
+              <p class="dica">Nenhuma carta com esse nome está em um fichário.</p>
+            } @else {
+              <p class="dica">
+                {{ totalResultados() }} {{ totalResultados() === 1 ? 'espaço encontrado' : 'espaços encontrados' }}
+              </p>
+              @for (g of grupos(); track g.fichaId) {
+                <section class="grupo">
+                  <h3>{{ g.fichaNome }}</h3>
+                  <ul>
+                    @for (r of g.itens; track r.pagina + ':' + r.indice) {
+                      <li>
+                        <button type="button" class="resultado" (click)="abrirResultado(r)">
+                          <img [src]="r.carta.imagem" [alt]="''" loading="lazy" />
+                          <span class="resultado-texto">
+                            <span class="resultado-nome">{{ r.carta.nome }}</span>
+                            <span class="resultado-onde">
+                              Página {{ r.pagina + 1 }} · linha {{ r.linha }}, coluna {{ r.coluna }}
+                            </span>
+                          </span>
+                          <span class="cond">{{ r.carta.condicao }}</span>
+                        </button>
+                      </li>
+                    }
+                  </ul>
+                </section>
+              }
+            }
+          </div>
+        }
+
+        <div class="estante">
+          @for (f of dados.fichas(); track f.id) {
+            <button type="button" class="capa-card" (click)="abrirFichario(f.id)">
+              <span class="capa-imagem">
+                @if (f.capa) {
+                  <img [src]="f.capa" [alt]="''" />
+                } @else {
+                  <span class="capa-vazia" aria-hidden="true">{{ f.nome.charAt(0).toUpperCase() }}</span>
+                }
+              </span>
+              <span class="capa-nome">{{ f.nome }}</span>
+              <span class="capa-info">{{ tamanho(f) }} · {{ f.paginas }} {{ f.paginas === 1 ? 'página' : 'páginas' }}</span>
+              <span class="progresso" aria-hidden="true"><span [style.width.%]="porcentagem(f)"></span></span>
+              <span class="capa-info">{{ ocupados(f) }} de {{ total(f) }} espaços com carta</span>
+            </button>
+          }
+        </div>
+      }
+    }
+
+    <!-- ===================== CRIAR ===================== -->
+    @if (tela() === 'criar') {
+      <div class="topo">
+        <h2>Novo fichário</h2>
+        <button type="button" class="btn-mini" (click)="voltarParaLista()">Cancelar</button>
+      </div>
+
+      <form class="criar" (submit)="criar($event)">
+        <div class="criar-campos">
+          <div class="campo">
+            <label for="fich-nome">Nome</label>
+            <input
+              #campoNome
+              id="fich-nome"
+              type="text"
+              [attr.maxlength]="limites.nome"
+              autocomplete="off"
+              placeholder="ex.: Fichário Escarlate e Violeta"
+              [value]="nome()"
+              (input)="nome.set(campoNome.value)"
+            />
+          </div>
+
+          <div class="campo">
+            <span class="rotulo">Foto do fichário</span>
+            <div class="foto">
+              <div class="foto-previa">
+                @if (capa()) {
+                  <img [src]="capa()" alt="Prévia da foto do fichário" />
+                } @else {
+                  <span aria-hidden="true">Sem foto</span>
+                }
+              </div>
+              <div class="foto-acoes">
+                <label class="btn-secundario" for="fich-foto">{{ capa() ? 'Trocar foto' : 'Escolher foto' }}</label>
+                <input id="fich-foto" class="oculto" type="file" accept="image/*" (change)="aoEscolherImagem($event)" />
+                @if (capa()) {
+                  <button type="button" class="btn-mini" (click)="capa.set(null)">Remover</button>
+                }
+                @if (lendoImagem()) {
+                  <span class="dica">Processando...</span>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="campo">
+            <span class="rotulo">Tamanho da página</span>
+            <div class="chips">
+              @for (t of tamanhos; track t.rotulo) {
+                <button
+                  type="button"
+                  class="chip"
+                  [class.ativa]="tamanhoAtivo(t.linhas, t.colunas)"
+                  [attr.aria-pressed]="tamanhoAtivo(t.linhas, t.colunas)"
+                  (click)="escolherTamanho(t.linhas, t.colunas)"
+                >
+                  {{ t.rotulo }} ({{ t.linhas }}×{{ t.colunas }})
+                </button>
+              }
+            </div>
+            <div class="numeros">
+              <label for="fich-linhas">
+                <span>Linhas</span>
+                <input
+                  #campoLinhas
+                  id="fich-linhas"
+                  type="number"
+                  min="1"
+                  [attr.max]="limites.linhas"
+                  inputmode="numeric"
+                  [value]="linhas()"
+                  (input)="digitarLinhas(campoLinhas.value)"
+                  (blur)="campoLinhas.value = '' + linhas()"
+                />
+              </label>
+              <label for="fich-colunas">
+                <span>Colunas</span>
+                <input
+                  #campoColunas
+                  id="fich-colunas"
+                  type="number"
+                  min="1"
+                  [attr.max]="limites.colunas"
+                  inputmode="numeric"
+                  [value]="colunas()"
+                  (input)="digitarColunas(campoColunas.value)"
+                  (blur)="campoColunas.value = '' + colunas()"
+                />
+              </label>
+              <label for="fich-paginas">
+                <span>Páginas</span>
+                <input
+                  #campoPaginas
+                  id="fich-paginas"
+                  type="number"
+                  min="1"
+                  [attr.max]="limites.paginas"
+                  inputmode="numeric"
+                  [value]="paginas()"
+                  (input)="digitarPaginas(campoPaginas.value)"
+                  (blur)="campoPaginas.value = '' + paginas()"
+                />
+              </label>
+            </div>
+          </div>
+
+          @if (erroFormulario()) {
+            <p class="erro" role="alert">{{ erroFormulario() }}</p>
+          }
+
+          <button type="submit" class="btn-primario largo">Criar fichário</button>
+        </div>
+
+        <div class="previa" aria-label="Prévia do fichário">
+          <div class="previa-titulo">Prévia</div>
+          <div class="folha folha-previa">
+            <div class="grade" [style.--cols]="colunas()">
+              @for (c of celulasPrevia(); track c) {
+                <span class="slot vazio-previa"></span>
+              }
+            </div>
+          </div>
+          <div class="paginador">
+            <button type="button" class="btn-mini" [disabled]="paginaPrevia() === 0" (click)="virarPrevia(-1)" aria-label="Página anterior">‹</button>
+            <span>Página {{ paginaPrevia() + 1 }} de {{ paginas() }}</span>
+            <button type="button" class="btn-mini" [disabled]="paginaPrevia() >= paginas() - 1" (click)="virarPrevia(1)" aria-label="Próxima página">›</button>
+          </div>
+          <p class="dica centro">
+            {{ linhas() }}×{{ colunas() }} = {{ linhas() * colunas() }} bolsos por página.<br />
+            {{ totalPrevia() }} espaços no total.
+          </p>
+        </div>
+      </form>
+    }
+
+    <!-- ===================== VER ===================== -->
+    @if (tela() === 'ver' && ficha(); as f) {
+      <div class="topo">
+        <button type="button" class="btn-mini" (click)="voltarParaLista()">← Fichários</button>
+        <div class="topo-acoes">
+          <button type="button" class="btn-mini" [disabled]="f.paginas >= limites.paginas" (click)="adicionarPagina()">+ Página</button>
+          @if (confirmandoExclusao()) {
+            <button type="button" class="btn-mini perigo" (click)="excluirFichario()">Excluir de vez</button>
+            <button type="button" class="btn-mini" (click)="confirmandoExclusao.set(false)">Cancelar</button>
+          } @else {
+            <button type="button" class="btn-mini perigo" (click)="confirmandoExclusao.set(true)">Excluir fichário</button>
+          }
+        </div>
+      </div>
+
+      <div class="cabecalho">
+        @if (f.capa) {
+          <img class="cabecalho-capa" [src]="f.capa" [alt]="''" />
+        }
+        <div>
+          <h2 class="titulo-ficha">{{ f.nome }}</h2>
+          <p class="dica">
+            {{ tamanho(f) }} · {{ ocupados(f) }} de {{ total(f) }} espaços com carta
+          </p>
+        </div>
+      </div>
+
+      <div class="paginador grande">
+        <button type="button" class="btn-secundario" [disabled]="pagina() === 0" (click)="irParaPagina(pagina() - 1)" aria-label="Página anterior">‹ Anterior</button>
+        <label class="ir" for="fich-pagina">
+          <span>Página</span>
+          <input
+            #campoPagina
+            id="fich-pagina"
+            type="number"
+            min="1"
+            [attr.max]="f.paginas"
+            inputmode="numeric"
+            [value]="pagina() + 1"
+            (change)="digitarPagina(campoPagina.value); campoPagina.value = '' + (pagina() + 1)"
+          />
+          <span>de {{ f.paginas }}</span>
+        </label>
+        <button type="button" class="btn-secundario" [disabled]="pagina() >= f.paginas - 1" (click)="irParaPagina(pagina() + 1)" aria-label="Próxima página">Próxima ›</button>
+      </div>
+
+      <div class="folha">
+        @for (p of [pagina()]; track p) {
+          <div class="grade virar" [style.--cols]="f.colunas">
+            @for (i of celulas(); track i) {
+              <button
+                type="button"
+                class="slot"
+                [class.cheio]="!!cartaEm(i)"
+                [class.destaque]="destaque() === i"
+                [attr.aria-label]="rotuloEspaco(i)"
+                [title]="cartaEm(i)?.nome ?? 'Espaço vazio'"
+                (click)="abrirEspaco(i)"
+              >
+                @if (cartaEm(i); as c) {
+                  <img [src]="c.imagem" [alt]="c.nome" />
+                  <span class="cond">{{ c.condicao }}</span>
+                } @else {
+                  <span class="mais" aria-hidden="true">+</span>
+                }
+              </button>
+            }
+          </div>
+        }
+      </div>
+      <p class="dica centro">{{ ocupadosNaPagina(f) }} de {{ celulas().length }} espaços ocupados nesta página. Use as setas do teclado para virar.</p>
+    }
+  </div>
+
+  <!-- ===================== ESCOLHER CARTA ===================== -->
+  @if (tela() === 'ver' && espacoAberto() !== null) {
+    <div class="fundo-modal" (click)="fecharEspaco()"></div>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="fich-modal-titulo">
+      <div class="modal-topo">
+        <h3 id="fich-modal-titulo">{{ tituloEspaco() }}</h3>
+        <button type="button" class="btn-mini" (click)="fecharEspaco()" aria-label="Fechar">✕</button>
+      </div>
+
+      @if (cartaAtual(); as atual) {
+        <div class="atual">
+          <img [src]="atual.imagem" [alt]="atual.nome" />
+          <div class="atual-info">
+            <strong>{{ atual.nome }}</strong>
+            <span class="dica">Condição {{ atual.condicao }}</span>
+          </div>
+          <button type="button" class="btn-mini perigo" (click)="removerDoEspaco()">Tirar do espaço</button>
+        </div>
+      }
+
+      @if (dados.colecao().length === 0) {
+        <div class="vazio">
+          <p class="dica">
+            Sua coleção está vazia. Adicione cartas em
+            <a routerLink="/colecao">Minha Coleção</a>
+            e elas aparecem aqui.
+          </p>
+        </div>
+      } @else {
+        <label class="campo" for="fich-filtro">
+          <span class="rotulo">{{ cartaAtual() ? 'Trocar por outra carta' : 'Escolher uma carta da coleção' }}</span>
+          <input
+            #campoFiltro
+            id="fich-filtro"
+            type="search"
+            autocomplete="off"
+            placeholder="Filtrar por nome"
+            [value]="filtroCartas()"
+            (input)="filtroCartas.set(campoFiltro.value)"
+          />
+        </label>
+
+        @if (erroEspaco()) {
+          <p class="erro" role="alert">{{ erroEspaco() }}</p>
+        }
+
+        <div class="galeria">
+          @for (c of candidatas(); track c.carta.id + '|' + c.carta.condicao) {
+            <button type="button" class="galeria-item" [disabled]="c.livres < 1" (click)="escolher(c)">
+              <img [src]="c.carta.imagem" [alt]="''" loading="lazy" />
+              <span class="galeria-nome">{{ c.carta.nome }}</span>
+              <span class="galeria-info">
+                <span class="cond">{{ c.carta.condicao }}</span>
+                <span>{{ c.livres > 0 ? c.livres + ' livre' + (c.livres > 1 ? 's' : '') : 'Todas em uso' }}</span>
+              </span>
+            </button>
+          } @empty {
+            <p class="dica">Nenhuma carta da coleção com esse nome.</p>
+          }
+        </div>
+      }
+    </div>
+  }
+}

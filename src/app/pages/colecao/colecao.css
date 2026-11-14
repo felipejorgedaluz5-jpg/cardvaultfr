@@ -227,3 +227,12 @@ select.filtro {
 }
 
 .select-formato{ width:auto; min-width:210px; font-size:0.78rem; padding:7px 10px; }
+
+/* condição da carta */
+.condicao-nova{ display:flex; flex-direction:column; gap:6px; max-width:420px; margin-bottom:12px; font-size:0.78rem; color:var(--text-dim); }
+.select-condicao{
+  width:100%; margin:2px 0 8px; padding:5px 6px; border-radius:var(--radius);
+  border:1px solid var(--border); background:var(--surface-2); color:var(--text);
+  font-size:0.74rem; font-family:var(--font-body);
+}
+.select-condicao:focus-visible{ outline:2px solid var(--gold); outline-offset:1px; }
