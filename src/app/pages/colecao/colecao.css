@@ -230,9 +230,47 @@ select.filtro {
 
 /* condição da carta */
 .condicao-nova{ display:flex; flex-direction:column; gap:6px; max-width:420px; margin-bottom:12px; font-size:0.78rem; color:var(--text-dim); }
-.select-condicao{
-  width:100%; margin:2px 0 8px; padding:5px 6px; border-radius:var(--radius);
-  border:1px solid var(--border); background:var(--surface-2); color:var(--text);
-  font-size:0.74rem; font-family:var(--font-body);
+
+/* carta aberta no painel lateral */
+.carta-item.selecionada { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold-dim); }
+
+/* painel lateral com os detalhes da carta (só aparece depois do clique) */
+.painel-carta {
+  position: fixed; z-index: 30; top: 0; right: 0; bottom: 0; width: min(320px, 100vw);
+  display: flex; flex-direction: column; gap: 14px; padding: 18px 18px 22px; overflow-y: auto;
+  background: var(--surface); border-left: 1px solid var(--border-strong);
+  box-shadow: -12px 0 32px rgba(0, 0, 0, 0.5); animation: painel-entra 0.2s ease-out;
 }
-.select-condicao:focus-visible{ outline:2px solid var(--gold); outline-offset:1px; }
+@keyframes painel-entra { from { transform: translateX(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+.painel-fechar {
+  align-self: flex-end; padding: 4px 10px; background: transparent; color: var(--text-dim);
+  border: 1px solid var(--border-strong); border-radius: var(--radius); font-size: 0.85rem; cursor: pointer;
+}
+.painel-fechar:hover { color: var(--text); }
+.painel-carta img { width: 100%; max-width: 220px; align-self: center; border-radius: 8px; background: var(--surface-3); }
+.painel-carta img.clicavel { cursor: zoom-in; }
+.painel-nome { margin: 0; font-family: var(--font-display); font-size: 1.05rem; text-align: center; overflow-wrap: anywhere; }
+.painel-bloco { display: flex; flex-direction: column; gap: 6px; }
+.painel-rotulo { font-size: 0.74rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-dim); }
+.painel-preco { font-family: var(--font-display); font-size: 1.3rem; color: var(--gold-soft); }
+.painel-preco.preco-vazio { font-size: 0.95rem; color: var(--text-faint); }
+.painel-dica { font-size: 0.74rem; color: var(--text-faint); line-height: 1.45; }
+.painel-remover {
+  margin-top: auto; padding: 9px 12px; background: transparent; color: var(--danger); cursor: pointer;
+  border: 1px solid rgba(229, 72, 77, 0.45); border-radius: var(--radius); font-size: 0.85rem; font-family: var(--font-body);
+}
+.painel-remover:hover { background: var(--danger-wash); }
+.painel-carta button:focus-visible, .carta-item img.clicavel:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+@media (max-width: 600px) {
+  .painel-carta { top: auto; width: 100%; max-height: 82dvh; border-left: 0; border-top: 1px solid var(--border-strong); border-radius: 14px 14px 0 0; }
+  @keyframes painel-entra { from { transform: translateY(24px); opacity: 0; } to { transform: none; opacity: 1; } }
+}
+@media (prefers-reduced-motion: reduce) { .painel-carta { animation: none; } }
+
+/* botão "adicionar à coleção" nas cartas do baralho que você não tem */
+.btn-falta {
+  width: 100%; margin-top: 6px; padding: 4px 6px; cursor: pointer; font-family: var(--font-body);
+  font-size: 0.68rem; font-weight: 600; line-height: 1.2; color: var(--gold-soft);
+  background: transparent; border: 1px solid var(--gold-dim); border-radius: var(--radius);
+}
+.btn-falta:hover { background: var(--gold-wash); }

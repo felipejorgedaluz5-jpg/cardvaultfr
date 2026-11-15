@@ -24,8 +24,8 @@
         <div class="vazio">
           <p><strong>Você ainda não tem fichários.</strong></p>
           <p class="dica">
-            Crie um com o mesmo tamanho do seu fichário de verdade e distribua nele as cartas da sua coleção, página por
-            página.
+            Crie um com o mesmo tamanho do seu fichário de verdade e distribua nele as cartas, página por página, frente
+            e verso. Dá para usar cartas que você ainda não tem e adicioná-las à coleção depois.
           </p>
         </div>
       } @else {
@@ -54,17 +54,16 @@
                 <section class="grupo">
                   <h3>{{ g.fichaNome }}</h3>
                   <ul>
-                    @for (r of g.itens; track r.pagina + ':' + r.indice) {
+                    @for (r of g.itens; track r.lado + ':' + r.indice) {
                       <li>
                         <button type="button" class="resultado" (click)="abrirResultado(r)">
                           <img [src]="r.carta.imagem" [alt]="''" loading="lazy" />
                           <span class="resultado-texto">
                             <span class="resultado-nome">{{ r.carta.nome }}</span>
                             <span class="resultado-onde">
-                              Página {{ r.pagina + 1 }} · linha {{ r.linha }}, coluna {{ r.coluna }}
+                              {{ rotuloLado(r.lado) }} · linha {{ r.linha }}, coluna {{ r.coluna }}
                             </span>
                           </span>
-                          <span class="cond">{{ r.carta.condicao }}</span>
                         </button>
                       </li>
                     }
@@ -78,31 +77,38 @@
         <div class="estante">
           @for (f of dados.fichas(); track f.id) {
             <button type="button" class="capa-card" (click)="abrirFichario(f.id)">
-              <span class="capa-imagem">
+              <span
+                class="capa-imagem"
+                [style.background-color]="corDaCapa(f)"
+                [style.color]="corDoTexto(corDaCapa(f))"
+              >
                 @if (f.capa) {
                   <img [src]="f.capa" [alt]="''" />
                 } @else {
-                  <span class="capa-vazia" aria-hidden="true">{{ f.nome.charAt(0).toUpperCase() }}</span>
+                  <span class="capa-vazia" aria-hidden="true">{{ letra(f) }}</span>
                 }
               </span>
               <span class="capa-nome">{{ f.nome }}</span>
               <span class="capa-info">{{ tamanho(f) }} · {{ f.paginas }} {{ f.paginas === 1 ? 'página' : 'páginas' }}</span>
               <span class="progresso" aria-hidden="true"><span [style.width.%]="porcentagem(f)"></span></span>
               <span class="capa-info">{{ ocupados(f) }} de {{ total(f) }} espaços com carta</span>
+              @if (faltamPorFichario().get(f.id); as n) {
+                <span class="capa-info capa-falta">{{ n }} {{ n === 1 ? 'carta fora' : 'cartas fora' }} da coleção</span>
+              }
             </button>
           }
         </div>
       }
     }
 
-    <!-- ===================== CRIAR ===================== -->
-    @if (tela() === 'criar') {
+    <!-- ===================== CRIAR / EDITAR ===================== -->
+    @if (tela() === 'criar' || tela() === 'editar') {
       <div class="topo">
-        <h2>Novo fichário</h2>
-        <button type="button" class="btn-mini" (click)="voltarParaLista()">Cancelar</button>
+        <h2>{{ tela() === 'criar' ? 'Novo fichário' : 'Editar fichário' }}</h2>
+        <button type="button" class="btn-mini" (click)="tela() === 'criar' ? voltarParaLista() : cancelarEdicao()">Cancelar</button>
       </div>
 
-      <form class="criar" (submit)="criar($event)">
+      <form class="criar" [class.sem-previa]="tela() === 'editar'" (submit)="enviarFormulario($event)">
         <div class="criar-campos">
           <div class="campo">
             <label for="fich-nome">Nome</label>
@@ -119,115 +125,154 @@
           </div>
 
           <div class="campo">
-            <span class="rotulo">Foto do fichário</span>
+            <span class="rotulo">Capa</span>
             <div class="foto">
-              <div class="foto-previa">
+              <div
+                class="foto-previa"
+                [style.background-color]="corEfetiva()"
+                [style.color]="corDoTexto(corEfetiva())"
+              >
                 @if (capa()) {
                   <img [src]="capa()" alt="Prévia da foto do fichário" />
                 } @else {
-                  <span aria-hidden="true">Sem foto</span>
+                  <span class="capa-vazia" aria-hidden="true">{{ inicial() }}</span>
                 }
               </div>
               <div class="foto-acoes">
                 <label class="btn-secundario" for="fich-foto">{{ capa() ? 'Trocar foto' : 'Escolher foto' }}</label>
                 <input id="fich-foto" class="oculto" type="file" accept="image/*" (change)="aoEscolherImagem($event)" />
                 @if (capa()) {
-                  <button type="button" class="btn-mini" (click)="capa.set(null)">Remover</button>
+                  <button type="button" class="btn-mini" (click)="capa.set(null)">Remover foto</button>
                 }
                 @if (lendoImagem()) {
                   <span class="dica">Processando...</span>
                 }
               </div>
             </div>
-          </div>
 
-          <div class="campo">
-            <span class="rotulo">Tamanho da página</span>
-            <div class="chips">
-              @for (t of tamanhos; track t.rotulo) {
+            <span class="rotulo" style="margin-top: 6px">Cor da capa (aparece quando não há foto)</span>
+            <div class="cores">
+              @for (c of cores; track c) {
                 <button
                   type="button"
-                  class="chip"
-                  [class.ativa]="tamanhoAtivo(t.linhas, t.colunas)"
-                  [attr.aria-pressed]="tamanhoAtivo(t.linhas, t.colunas)"
-                  (click)="escolherTamanho(t.linhas, t.colunas)"
-                >
-                  {{ t.rotulo }} ({{ t.linhas }}×{{ t.colunas }})
-                </button>
+                  class="cor"
+                  [style.background-color]="c"
+                  [attr.aria-label]="'Usar a cor ' + c"
+                  [attr.aria-pressed]="corEfetiva() === c"
+                  [class.ativa]="corEfetiva() === c"
+                  (click)="escolherCor(c)"
+                ></button>
               }
-            </div>
-            <div class="numeros">
-              <label for="fich-linhas">
-                <span>Linhas</span>
+              <label class="cor-livre" for="fich-cor">
                 <input
-                  #campoLinhas
-                  id="fich-linhas"
-                  type="number"
-                  min="1"
-                  [attr.max]="limites.linhas"
-                  inputmode="numeric"
-                  [value]="linhas()"
-                  (input)="digitarLinhas(campoLinhas.value)"
-                  (blur)="campoLinhas.value = '' + linhas()"
+                  #campoCor
+                  id="fich-cor"
+                  type="color"
+                  [value]="corEfetiva()"
+                  (input)="escolherCor(campoCor.value)"
                 />
-              </label>
-              <label for="fich-colunas">
-                <span>Colunas</span>
-                <input
-                  #campoColunas
-                  id="fich-colunas"
-                  type="number"
-                  min="1"
-                  [attr.max]="limites.colunas"
-                  inputmode="numeric"
-                  [value]="colunas()"
-                  (input)="digitarColunas(campoColunas.value)"
-                  (blur)="campoColunas.value = '' + colunas()"
-                />
-              </label>
-              <label for="fich-paginas">
-                <span>Páginas</span>
-                <input
-                  #campoPaginas
-                  id="fich-paginas"
-                  type="number"
-                  min="1"
-                  [attr.max]="limites.paginas"
-                  inputmode="numeric"
-                  [value]="paginas()"
-                  (input)="digitarPaginas(campoPaginas.value)"
-                  (blur)="campoPaginas.value = '' + paginas()"
-                />
+                <span>Outra cor</span>
               </label>
             </div>
+            @if (tela() === 'criar' && cor() === null) {
+              <p class="dica">Se você não escolher uma cor, o fichário fica com a cor da prévia.</p>
+            }
           </div>
+
+          @if (tela() === 'criar') {
+            <div class="campo">
+              <span class="rotulo">Tamanho de cada lado da página</span>
+              <div class="chips">
+                @for (t of tamanhos; track t.rotulo) {
+                  <button
+                    type="button"
+                    class="chip"
+                    [class.ativa]="tamanhoAtivo(t.linhas, t.colunas)"
+                    [attr.aria-pressed]="tamanhoAtivo(t.linhas, t.colunas)"
+                    (click)="escolherTamanho(t.linhas, t.colunas)"
+                  >
+                    {{ t.rotulo }} ({{ t.linhas }}×{{ t.colunas }})
+                  </button>
+                }
+              </div>
+              <div class="numeros">
+                <label for="fich-linhas">
+                  <span>Linhas</span>
+                  <input
+                    #campoLinhas
+                    id="fich-linhas"
+                    type="number"
+                    min="1"
+                    [attr.max]="limites.linhas"
+                    inputmode="numeric"
+                    [value]="linhas()"
+                    (input)="digitarLinhas(campoLinhas.value)"
+                    (blur)="campoLinhas.value = '' + linhas()"
+                  />
+                </label>
+                <label for="fich-colunas">
+                  <span>Colunas</span>
+                  <input
+                    #campoColunas
+                    id="fich-colunas"
+                    type="number"
+                    min="1"
+                    [attr.max]="limites.colunas"
+                    inputmode="numeric"
+                    [value]="colunas()"
+                    (input)="digitarColunas(campoColunas.value)"
+                    (blur)="campoColunas.value = '' + colunas()"
+                  />
+                </label>
+                <label for="fich-paginas">
+                  <span>Páginas</span>
+                  <input
+                    #campoPaginas
+                    id="fich-paginas"
+                    type="number"
+                    min="1"
+                    [attr.max]="limites.paginas"
+                    inputmode="numeric"
+                    [value]="paginas()"
+                    (input)="digitarPaginas(campoPaginas.value)"
+                    (blur)="campoPaginas.value = '' + paginas()"
+                  />
+                </label>
+              </div>
+              <p class="dica">Cada página tem frente e verso, com o mesmo número de bolsos nos dois lados.</p>
+            </div>
+          } @else {
+            <p class="dica">O tamanho e o número de páginas não mudam depois de criado, porque as cartas já estão nos bolsos.</p>
+          }
 
           @if (erroFormulario()) {
             <p class="erro" role="alert">{{ erroFormulario() }}</p>
           }
 
-          <button type="submit" class="btn-primario largo">Criar fichário</button>
+          <button type="submit" class="btn-primario largo">{{ tela() === 'criar' ? 'Criar fichário' : 'Salvar alterações' }}</button>
         </div>
 
-        <div class="previa" aria-label="Prévia do fichário">
-          <div class="previa-titulo">Prévia</div>
-          <div class="folha folha-previa">
-            <div class="grade" [style.--cols]="colunas()">
-              @for (c of celulasPrevia(); track c) {
-                <span class="slot vazio-previa"></span>
-              }
+        @if (tela() === 'criar') {
+          <div class="previa" aria-label="Prévia do fichário">
+            <div class="previa-titulo">Prévia</div>
+            <div class="folha folha-previa">
+              <div class="grade" [style.--cols]="colunas()">
+                @for (c of celulasPrevia(); track c) {
+                  <span class="slot vazio-previa"></span>
+                }
+              </div>
             </div>
+            <div class="paginador">
+              <button type="button" class="btn-mini" [disabled]="paginaPrevia() === 0" (click)="virarPrevia(-1)" aria-label="Lado anterior">‹</button>
+              <span>{{ rotuloPrevia() }} · {{ paginas() }} {{ paginas() === 1 ? 'página' : 'páginas' }}</span>
+              <button type="button" class="btn-mini" [disabled]="paginaPrevia() >= paginas() * 2 - 1" (click)="virarPrevia(1)" aria-label="Próximo lado">›</button>
+            </div>
+            <p class="dica centro">
+              {{ linhas() }}×{{ colunas() }} = {{ linhas() * colunas() }} bolsos por lado.<br />
+              {{ totalPrevia() }} espaços no total, contando frente e verso.
+            </p>
           </div>
-          <div class="paginador">
-            <button type="button" class="btn-mini" [disabled]="paginaPrevia() === 0" (click)="virarPrevia(-1)" aria-label="Página anterior">‹</button>
-            <span>Página {{ paginaPrevia() + 1 }} de {{ paginas() }}</span>
-            <button type="button" class="btn-mini" [disabled]="paginaPrevia() >= paginas() - 1" (click)="virarPrevia(1)" aria-label="Próxima página">›</button>
-          </div>
-          <p class="dica centro">
-            {{ linhas() }}×{{ colunas() }} = {{ linhas() * colunas() }} bolsos por página.<br />
-            {{ totalPrevia() }} espaços no total.
-          </p>
-        </div>
+        }
       </form>
     }
 
@@ -236,6 +281,7 @@
       <div class="topo">
         <button type="button" class="btn-mini" (click)="voltarParaLista()">← Fichários</button>
         <div class="topo-acoes">
+          <button type="button" class="btn-mini" (click)="abrirEdicao()">Editar</button>
           <button type="button" class="btn-mini" [disabled]="f.paginas >= limites.paginas" (click)="adicionarPagina()">+ Página</button>
           @if (confirmandoExclusao()) {
             <button type="button" class="btn-mini perigo" (click)="excluirFichario()">Excluir de vez</button>
@@ -247,19 +293,45 @@
       </div>
 
       <div class="cabecalho">
-        @if (f.capa) {
-          <img class="cabecalho-capa" [src]="f.capa" [alt]="''" />
-        }
+        <span
+          class="cabecalho-capa"
+          [style.background-color]="corDaCapa(f)"
+          [style.color]="corDoTexto(corDaCapa(f))"
+        >
+          @if (f.capa) {
+            <img [src]="f.capa" [alt]="''" />
+          } @else {
+            <span class="capa-vazia" aria-hidden="true">{{ letra(f) }}</span>
+          }
+        </span>
         <div>
           <h2 class="titulo-ficha">{{ f.nome }}</h2>
           <p class="dica">
-            {{ tamanho(f) }} · {{ ocupados(f) }} de {{ total(f) }} espaços com carta
+            {{ tamanho(f) }} por lado · {{ f.paginas }} {{ f.paginas === 1 ? 'página' : 'páginas' }} ·
+            {{ ocupados(f) }} de {{ total(f) }} espaços com carta
           </p>
         </div>
       </div>
 
+      @if (aviso()) {
+        <p class="aviso-ok" role="status">{{ aviso() }}</p>
+      }
+
+      @if (totalFaltam() > 0) {
+        <div class="faixa-falta" role="status">
+          <div>
+            <strong>
+              {{ totalFaltam() }}
+              {{ totalFaltam() === 1 ? 'carta deste fichário não está' : 'cartas deste fichário não estão' }} na sua coleção
+            </strong>
+            <div class="dica">Elas aparecem com um ! no bolso.</div>
+          </div>
+          <button type="button" class="btn-secundario" (click)="adicionarFaltantesNaColecao()">Adicionar à coleção</button>
+        </div>
+      }
+
       <div class="paginador grande">
-        <button type="button" class="btn-secundario" [disabled]="pagina() === 0" (click)="irParaPagina(pagina() - 1)" aria-label="Página anterior">‹ Anterior</button>
+        <button type="button" class="btn-secundario" [disabled]="vista() === 0" (click)="irParaVista(vista() - 1)" aria-label="Folhear para trás">‹ Anterior</button>
         <label class="ir" for="fich-pagina">
           <span>Página</span>
           <input
@@ -269,39 +341,55 @@
             min="1"
             [attr.max]="f.paginas"
             inputmode="numeric"
-            [value]="pagina() + 1"
-            (change)="digitarPagina(campoPagina.value); campoPagina.value = '' + (pagina() + 1)"
+            [value]="paginaNoCampo()"
+            (change)="digitarPagina(campoPagina.value); campoPagina.value = '' + paginaNoCampo()"
           />
           <span>de {{ f.paginas }}</span>
         </label>
-        <button type="button" class="btn-secundario" [disabled]="pagina() >= f.paginas - 1" (click)="irParaPagina(pagina() + 1)" aria-label="Próxima página">Próxima ›</button>
+        <button type="button" class="btn-secundario" [disabled]="vista() >= ultimaVista()" (click)="irParaVista(vista() + 1)" aria-label="Folhear para frente">Próxima ›</button>
       </div>
+      <p class="dica centro vista-rotulo">{{ rotuloDaVista() }}</p>
 
-      <div class="folha">
-        @for (p of [pagina()]; track p) {
-          <div class="grade virar" [style.--cols]="f.colunas">
-            @for (i of celulas(); track i) {
-              <button
-                type="button"
-                class="slot"
-                [class.cheio]="!!cartaEm(i)"
-                [class.destaque]="destaque() === i"
-                [attr.aria-label]="rotuloEspaco(i)"
-                [title]="cartaEm(i)?.nome ?? 'Espaço vazio'"
-                (click)="abrirEspaco(i)"
-              >
-                @if (cartaEm(i); as c) {
-                  <img [src]="c.imagem" [alt]="c.nome" />
-                  <span class="cond">{{ c.condicao }}</span>
-                } @else {
-                  <span class="mais" aria-hidden="true">+</span>
-                }
-              </button>
+      @for (v of [vista()]; track v) {
+        <div class="livro virar" [attr.data-vista]="v">
+          @for (lado of ladosVisiveis(); track $index) {
+            @if (lado === null) {
+              <div class="folha-vazia" aria-hidden="true"></div>
+            } @else {
+              <section class="pagina-lado" [class.esq]="$first" [class.dir]="$last" [attr.aria-label]="rotuloLado(lado)">
+                <div class="lado-rotulo">{{ rotuloLado(lado) }}</div>
+                <div class="folha">
+                  <div class="grade" [style.--cols]="f.colunas">
+                    @for (i of celulas(); track i) {
+                      <button
+                        type="button"
+                        class="slot"
+                        [class.cheio]="!!cartaEm(lado, i)"
+                        [class.destaque]="ehDestaque(lado, i)"
+                        [attr.aria-label]="rotuloEspaco(lado, i)"
+                        [title]="cartaEm(lado, i)?.nome ?? 'Espaço vazio'"
+                        (click)="abrirEspaco(lado, i)"
+                      >
+                        @if (cartaEm(lado, i); as c) {
+                          <img [src]="c.imagem" [alt]="c.nome" />
+                          @if (falta(lado, i)) {
+                            <span class="falta" aria-hidden="true" title="Essa carta não está na sua coleção">!</span>
+                          }
+                        } @else {
+                          <span class="mais" aria-hidden="true">+</span>
+                        }
+                      </button>
+                    }
+                  </div>
+                </div>
+              </section>
             }
-          </div>
-        }
-      </div>
-      <p class="dica centro">{{ ocupadosNaPagina(f) }} de {{ celulas().length }} espaços ocupados nesta página. Use as setas do teclado para virar.</p>
+          }
+        </div>
+      }
+      <p class="dica centro">
+        {{ ocupadosNaVista(f) }} de {{ espacosNaVista(f) }} espaços ocupados nesta vista. Use as setas do teclado para folhear.
+      </p>
     }
   </div>
 
@@ -315,54 +403,127 @@
       </div>
 
       @if (cartaAtual(); as atual) {
-        <div class="atual">
+        <div class="atual" [class.atual-falta]="faltaAtual()">
           <img [src]="atual.imagem" [alt]="atual.nome" />
           <div class="atual-info">
             <strong>{{ atual.nome }}</strong>
             <span class="dica">Condição {{ atual.condicao }}</span>
+            @if (faltaAtual()) {
+              <span class="aviso-falta">Não está na sua coleção</span>
+            }
           </div>
-          <button type="button" class="btn-mini perigo" (click)="removerDoEspaco()">Tirar do espaço</button>
+          <div class="atual-acoes">
+            @if (faltaAtual()) {
+              <button type="button" class="btn-mini destaque-btn" (click)="adicionarAtualNaColecao()">+ Coleção</button>
+            }
+            <button type="button" class="btn-mini perigo" (click)="removerDoEspaco()">Tirar do espaço</button>
+          </div>
         </div>
       }
 
-      @if (dados.colecao().length === 0) {
-        <div class="vazio">
-          <p class="dica">
-            Sua coleção está vazia. Adicione cartas em
-            <a routerLink="/colecao">Minha Coleção</a>
-            e elas aparecem aqui.
-          </p>
-        </div>
-      } @else {
-        <label class="campo" for="fich-filtro">
-          <span class="rotulo">{{ cartaAtual() ? 'Trocar por outra carta' : 'Escolher uma carta da coleção' }}</span>
-          <input
-            #campoFiltro
-            id="fich-filtro"
-            type="search"
-            autocomplete="off"
-            placeholder="Filtrar por nome"
-            [value]="filtroCartas()"
-            (input)="filtroCartas.set(campoFiltro.value)"
-          />
-        </label>
+      @if (aviso()) {
+        <p class="aviso-ok" role="status">{{ aviso() }}</p>
+      }
 
-        @if (erroEspaco()) {
-          <p class="erro" role="alert">{{ erroEspaco() }}</p>
+      <div class="modos" role="tablist">
+        <button type="button" role="tab" class="modo" [class.ativa]="modoEscolha() === 'colecao'" [attr.aria-selected]="modoEscolha() === 'colecao'" (click)="trocarModo('colecao')">
+          Da minha coleção
+        </button>
+        <button type="button" role="tab" class="modo" [class.ativa]="modoEscolha() === 'busca'" [attr.aria-selected]="modoEscolha() === 'busca'" (click)="trocarModo('busca')">
+          Buscar qualquer carta
+        </button>
+      </div>
+
+      @if (modoEscolha() === 'colecao') {
+        @if (dados.colecao().length === 0) {
+          <div class="vazio">
+            <p class="dica">
+              Sua coleção está vazia. Use a aba "Buscar qualquer carta" ou adicione cartas em
+              <a routerLink="/colecao">Minha Coleção</a>.
+            </p>
+          </div>
+        } @else {
+          <label class="campo" for="fich-filtro">
+            <span class="rotulo">{{ cartaAtual() ? 'Trocar por outra carta' : 'Escolher uma carta da coleção' }}</span>
+            <input
+              #campoFiltro
+              id="fich-filtro"
+              type="search"
+              autocomplete="off"
+              placeholder="Filtrar por nome"
+              [value]="filtroCartas()"
+              (input)="filtroCartas.set(campoFiltro.value)"
+            />
+          </label>
+
+          <div class="galeria">
+            @for (c of candidatas(); track c.carta.id + '|' + c.carta.condicao) {
+              <button
+                type="button"
+                class="galeria-item"
+                [class.sem-livres]="c.livres < 1"
+                [title]="c.livres < 1 ? 'Todas as cópias já estão em fichários. Usar mesmo assim marca a carta como fora da coleção.' : ''"
+                (click)="escolher(c)"
+              >
+                <img [src]="c.carta.imagem" [alt]="''" loading="lazy" />
+                <span class="galeria-nome">{{ c.carta.nome }}</span>
+                <span class="galeria-info">
+                  <span class="cond">{{ c.carta.condicao }}</span>
+                  <span>{{ c.livres > 0 ? c.livres + ' livre' + (c.livres > 1 ? 's' : '') : 'Todas em uso' }}</span>
+                </span>
+              </button>
+            } @empty {
+              <p class="dica">Nenhuma carta da coleção com esse nome.</p>
+            }
+          </div>
         }
+      } @else {
+        <div class="busca-api">
+          <label class="campo" for="fich-busca-api">
+            <span class="rotulo">Nome da carta</span>
+            <input
+              #campoApi
+              id="fich-busca-api"
+              type="search"
+              autocomplete="off"
+              placeholder="Pelo menos 3 letras, ex.: Charizard"
+              [value]="termoApi()"
+              (input)="digitarBuscaApi(campoApi.value)"
+            />
+          </label>
+          <label class="campo" for="fich-cond-api">
+            <span class="rotulo">Condição</span>
+            <select #campoCond id="fich-cond-api" [value]="condicaoExterna()" (change)="condicaoExterna.set(campoCond.value)">
+              @for (o of condicoes; track o.sigla) {
+                <option [value]="o.sigla">{{ o.nome }}</option>
+              }
+            </select>
+          </label>
+        </div>
+        <p class="dica">
+          Cartas que você não tem entram no fichário com um ! e podem ser adicionadas à coleção quando quiser.
+        </p>
+
+        <div aria-live="polite">
+          @if (buscandoApi()) {
+            <p class="dica">Buscando...</p>
+          } @else if (erroApi()) {
+            <p class="erro" role="alert">{{ erroApi() }}</p>
+          } @else if (termoApi().trim().length >= 3 && resultadosApi().length === 0) {
+            <p class="dica">Nenhuma carta encontrada com esse nome.</p>
+          }
+        </div>
 
         <div class="galeria">
-          @for (c of candidatas(); track c.carta.id + '|' + c.carta.condicao) {
-            <button type="button" class="galeria-item" [disabled]="c.livres < 1" (click)="escolher(c)">
-              <img [src]="c.carta.imagem" [alt]="''" loading="lazy" />
-              <span class="galeria-nome">{{ c.carta.nome }}</span>
+          @for (c of resultadosApi(); track c.id) {
+            <button type="button" class="galeria-item" (click)="escolherDaBusca(c)">
+              <img [src]="c.imagemBaixa" [alt]="''" loading="lazy" />
+              <span class="galeria-nome">{{ c.nome }}</span>
               <span class="galeria-info">
-                <span class="cond">{{ c.carta.condicao }}</span>
-                <span>{{ c.livres > 0 ? c.livres + ' livre' + (c.livres > 1 ? 's' : '') : 'Todas em uso' }}</span>
+                <span class="mono">{{ c.id }}</span>
+                <span [class.na-colecao]="possuiNaColecao(c)">{{ possuiNaColecao(c) ? 'Na coleção' : 'Fora da coleção' }}</span>
               </span>
             </button>
-          } @empty {
-            <p class="dica">Nenhuma carta da coleção com esse nome.</p>
           }
         </div>
       }

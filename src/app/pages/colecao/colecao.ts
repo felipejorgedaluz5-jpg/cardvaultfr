@@ -217,8 +217,42 @@ export class Colecao {
     }
   }
 
+  /** carta cujo painel lateral (condição, preço, quantidade) está aberto; null = painel fechado */
+  cartaSelecionada: Carta | null = null;
+
+  abrirPainel(carta: Carta): void {
+    this.cartaSelecionada = carta;
+  }
+
+  fecharPainel(): void {
+    this.cartaSelecionada = null;
+  }
+
+  /** muda a condição da carta aberta no painel e continua mostrando a linha resultante */
+  mudarCondicaoPainel(nova: Condicao): void {
+    if (!this.cartaSelecionada) return;
+    this.cartaSelecionada = this.trocarCondicao(this.cartaSelecionada, nova);
+  }
+
+  removerDoPainel(): void {
+    if (!this.cartaSelecionada) return;
+    this.removerDaColecao(this.cartaSelecionada);
+    this.fecharPainel();
+  }
+
+  /** o painel fecha se a carta deixar de existir na coleção (zerou a quantidade, por exemplo) */
+  get painelAberto(): Carta | null {
+    return this.cartaSelecionada && this.colecao.includes(this.cartaSelecionada) ? this.cartaSelecionada : null;
+  }
+
+  @HostListener('document:keydown.escape')
+  aoApertarEsc(): void {
+    this.fecharPainel();
+  }
+
   mudarAba(aba: 'colecao' | 'baralhos'): void {
     this.aba.set(aba);
+    this.fecharPainel();
     if (aba === 'colecao' && this.colecao.length === 0 && this.baralhos.length === 0) {
       this.carregarDadosUsuario();
     }
@@ -424,18 +458,24 @@ export class Colecao {
     return Math.round(c.valor * this.fatorCondicao(c) * 100) / 100;
   }
 
-  /** muda a condição da carta; se já existir outra linha igual nessa condição, soma as quantidades */
-  trocarCondicao(carta: Carta, nova: Condicao): void {
-    if ((carta.condicao ?? 'NM') === nova) return;
+  /**
+   * Muda a condição da carta; se já existir outra linha igual nessa condição, soma as quantidades.
+   * Devolve a linha que ficou com as cópias (a própria carta ou a que absorveu a quantidade).
+   */
+  trocarCondicao(carta: Carta, nova: Condicao): Carta {
+    if ((carta.condicao ?? 'NM') === nova) return carta;
     const igual = this.colecao.find((item) => item !== carta && item.id === carta.id && (item.condicao ?? 'NM') === nova);
+    let resultado = carta;
     if (igual) {
       igual.qtd += carta.qtd;
       const idx = this.colecao.indexOf(carta);
       if (idx > -1) this.colecao.splice(idx, 1);
+      resultado = igual;
     } else {
       carta.condicao = nova;
     }
     this.salvarDados();
+    return resultado;
   }
 
   get resumoFatores(): string {
@@ -612,33 +652,44 @@ export class Colecao {
       this.mostrarDropdownColecao = false;
       this.novoNomeColecao = '';
 
-      const condicao = this.condicaoNova;
-      const existente = this.colecao.find((item) => item.id === c.id && (item.condicao ?? 'NM') === condicao);
-      if (existente) {
-        existente.qtd++;
-      } else {
-        // a mesma carta em outra condição já tem preço de mercado: reaproveita em vez de buscar de novo
-        const irma = this.colecao.find((item) => item.id === c.id && item.fonte);
-        this.colecao.push({
-          id: c.id,
-          nome: c.name,
-          valor: irma ? irma.valor : 0,
-          condicao,
-          fonte: irma?.fonte,
-          moeda: irma?.moeda,
-          precoOriginal: irma?.precoOriginal,
-          precoAtualizadoEm: irma?.precoAtualizadoEm,
-          imagem: imagemAlta || 'https://placehold.co/130x180?text=?',
-          qtd: 1,
-        });
-      }
-      this.salvarDados();
-      void this.atualizarPrecos();
+      this.adicionarNaColecao(c.id, c.name, imagemAlta, 1, this.condicaoNova);
     } else {
       this.novoNomeBaralho = '';
       this.mostrarDropdownBaralho = false;
       this.adicionarAoBaralho(c.id, c.name, imagemAlta);
     }
+  }
+
+  /** soma `qtd` cópias à coleção (uma linha por carta e condição) e busca o preço se ainda não houver */
+  private adicionarNaColecao(
+    id: string,
+    nome: string,
+    imagem: string,
+    qtd: number,
+    condicao: Condicao,
+    buscarPrecos = true,
+  ): void {
+    const existente = this.colecao.find((item) => item.id === id && (item.condicao ?? 'NM') === condicao);
+    if (existente) {
+      existente.qtd += qtd;
+    } else {
+      // a mesma carta em outra condição já tem preço de mercado: reaproveita em vez de buscar de novo
+      const irma = this.colecao.find((item) => item.id === id && item.fonte);
+      this.colecao.push({
+        id,
+        nome,
+        valor: irma ? irma.valor : 0,
+        condicao,
+        fonte: irma?.fonte,
+        moeda: irma?.moeda,
+        precoOriginal: irma?.precoOriginal,
+        precoAtualizadoEm: irma?.precoAtualizadoEm,
+        imagem: imagem || 'https://placehold.co/130x180?text=?',
+        qtd,
+      });
+    }
+    this.salvarDados();
+    if (buscarPrecos) void this.atualizarPrecos();
   }
 
   incrementarColecao(carta: Carta): void {
@@ -1116,5 +1167,27 @@ export class Colecao {
 
   faltamNaColecao(c: BaralhoCarta): number {
     return c.qtd - this.qtdNaColecao(c.nome);
+  }
+
+  /** soma, no baralho aberto, as cópias que o baralho usa e a coleção não tem */
+  totalFaltantesBaralho(): number {
+    const baralho = this.baralhos[this.baralhoAtivoIndex];
+    if (!baralho) return 0;
+    return baralho.cartas.reduce((soma, c) => soma + Math.max(0, this.faltamNaColecao(c)), 0);
+  }
+
+  /** leva para a coleção as cópias que faltam de uma carta do baralho (em condição NM; dá para mudar depois) */
+  adicionarFaltantesNaColecao(c: BaralhoCarta, buscarPrecos = true): void {
+    const faltam = this.faltamNaColecao(c);
+    if (faltam <= 0) return;
+    this.adicionarNaColecao(c.id, c.nome, c.imagem, faltam, 'NM', buscarPrecos);
+  }
+
+  /** leva para a coleção tudo o que falta para montar o baralho aberto (uma busca de preços só, no fim) */
+  adicionarTodosFaltantesNaColecao(): void {
+    const baralho = this.baralhos[this.baralhoAtivoIndex];
+    if (!baralho) return;
+    for (const c of baralho.cartas) this.adicionarFaltantesNaColecao(c, false);
+    void this.atualizarPrecos();
   }
 }

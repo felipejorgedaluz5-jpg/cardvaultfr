@@ -49,7 +49,7 @@
       </select>
     </div>
 
-    <label class="condicao-nova">
+    <label class="condicao-nova" *ngIf="mostrarValores()">
       <span>Condição das cartas que você adicionar</span>
       <select class="filtro" [(ngModel)]="condicaoNova" style="margin:0;">
         <option *ngFor="let o of condicoes" [value]="o.sigla">{{ o.nome }}</option>
@@ -75,14 +75,12 @@
     </div>
 
     <ul id="listaColecao">
-      <li class="carta-item" *ngFor="let c of colecaoFiltrada">
+      <li class="carta-item" *ngFor="let c of colecaoFiltrada" [class.selecionada]="painelAberto === c">
         <button class="btn-remover-carta" title="Remover da coleção" (click)="removerDaColecao(c)">X</button>
-        <img [src]="c.imagem" [alt]="c.nome" loading="lazy" class="clicavel" (error)="aoFalharImagem($event, 130, 180)" (click)="abrirImagem(c.imagem, c.nome)">
+        <img [src]="c.imagem" [alt]="c.nome" loading="lazy" class="clicavel" role="button" tabindex="0"
+             [attr.aria-label]="'Abrir detalhes de ' + c.nome"
+             (error)="aoFalharImagem($event, 130, 180)" (click)="abrirPainel(c)" (keydown.enter)="abrirPainel(c)">
         <div class="nome" [title]="c.nome">{{ c.nome }}</div>
-        <select class="select-condicao" [ngModel]="c.condicao ?? 'NM'" (ngModelChange)="trocarCondicao(c, $event)"
-                [attr.aria-label]="'Condição de ' + c.nome">
-          <option *ngFor="let o of condicoes" [value]="o.sigla">{{ o.nome }}</option>
-        </select>
         <div class="qtd-control">
           <button class="btn-qtd" (click)="decrementarColecao(c)" aria-label="Diminuir quantidade">−</button>
           <span class="qtd-valor">{{ c.qtd }}x</span>
@@ -91,6 +89,39 @@
         <div class="preco" *ngIf="mostrarValores()" [class.preco-vazio]="!temPreco(c)" [title]="dicaPreco(c)">{{ textoPreco(c) }}</div>
       </li>
     </ul>
+    <aside class="painel-carta" *ngIf="painelAberto as c" role="dialog" aria-label="Detalhes da carta">
+      <button type="button" class="painel-fechar" (click)="fecharPainel()" aria-label="Fechar painel">✕</button>
+      <img [src]="c.imagem" [alt]="c.nome" class="clicavel" title="Clique para ampliar"
+           (error)="aoFalharImagem($event, 130, 180)" (click)="abrirImagem(c.imagem, c.nome)">
+      <h3 class="painel-nome">{{ c.nome }}</h3>
+
+      <div class="painel-bloco">
+        <span class="painel-rotulo">Quantidade</span>
+        <div class="qtd-control">
+          <button class="btn-qtd" (click)="decrementarColecao(c)" aria-label="Diminuir quantidade">−</button>
+          <span class="qtd-valor">{{ c.qtd }}x</span>
+          <button class="btn-qtd" (click)="incrementarColecao(c)" aria-label="Aumentar quantidade">+</button>
+        </div>
+      </div>
+
+      <ng-container *ngIf="mostrarValores()">
+        <label class="painel-bloco" for="painel-condicao">
+          <span class="painel-rotulo">Condição</span>
+          <select id="painel-condicao" class="filtro" style="margin:0;" [ngModel]="c.condicao ?? 'NM'"
+                  (ngModelChange)="mudarCondicaoPainel($event)">
+            <option *ngFor="let o of condicoes" [value]="o.sigla">{{ o.nome }}</option>
+          </select>
+        </label>
+        <div class="painel-bloco">
+          <span class="painel-rotulo">Valor</span>
+          <div class="painel-preco" [class.preco-vazio]="!temPreco(c)">{{ textoPreco(c) }}</div>
+          <div class="painel-dica">{{ dicaPreco(c) }}</div>
+        </div>
+      </ng-container>
+
+      <button type="button" class="painel-remover" (click)="removerDoPainel()">Remover da coleção</button>
+    </aside>
+
     <p class="empty" *ngIf="colecao.length === 0" style="display:block">A sua coleção está vazia. Adicione uma carta acima.</p>
     <p class="empty" *ngIf="colecao.length > 0 && colecaoFiltrada.length === 0" style="display:block">Nenhuma carta desta expansão na sua coleção.</p>
     <div class="total" *ngIf="mostrarValores()">
@@ -129,7 +160,11 @@
     <div *ngIf="baralhoAtivoIndex >= 0 && baralhos[baralhoAtivoIndex]">
       <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; font-size:0.9rem;">
         <strong>Cartas: <span style="color:var(--gold-soft);">{{ totalCartasBaralho() }}</span>/60</strong>
-        <div style="display:flex; gap:8px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+          <button class="btn-secundario" *ngIf="totalFaltantesBaralho() > 0" (click)="adicionarTodosFaltantesNaColecao()"
+                  title="Adiciona à coleção as cartas deste baralho que você ainda não tem">
+            📥 Adicionar {{ totalFaltantesBaralho() }} faltante{{ totalFaltantesBaralho() > 1 ? 's' : '' }} à coleção
+          </button>
           <button class="btn-secundario" [class.ativo]="mostrarColecaoNoBaralho" (click)="toggleColecaoNoBaralho()">
             📚 {{ mostrarColecaoNoBaralho ? 'Ocultar coleção' : 'Ver minha coleção' }}
           </button>
@@ -239,6 +274,10 @@
             <span class="qtd-valor">{{ c.qtd }}x</span>
             <button class="btn-qtd" (click)="incrementarNoBaralho(c)" aria-label="Aumentar quantidade">+</button>
           </div>
+          <button *ngIf="faltamNaColecao(c) > 0" type="button" class="btn-falta" (click)="adicionarFaltantesNaColecao(c)"
+                  [title]="'Adicionar ' + faltamNaColecao(c) + ' à coleção'">
+            + {{ faltamNaColecao(c) }} na coleção
+          </button>
         </div>
       </div>
     </div>

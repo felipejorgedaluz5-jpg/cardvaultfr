@@ -80,10 +80,11 @@ label.campo > .rotulo { font-size: 0.78rem; color: var(--text-dim); }
   display: block; aspect-ratio: 4 / 3; overflow: hidden; border-radius: var(--radius); background: var(--surface-3);
   margin-bottom: 4px;
 }
+.capa-falta { color: var(--gold-soft); font-weight: 600; }
 .capa-imagem img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .capa-vazia {
   display: flex; align-items: center; justify-content: center; height: 100%;
-  font-family: var(--font-display); font-size: 2.4rem; color: var(--gold-dim);
+  font-family: var(--font-display); font-size: 2.4rem; color: inherit; opacity: 0.9;
 }
 .capa-nome { font-family: var(--font-display); font-weight: 600; font-size: 1rem; overflow-wrap: anywhere; }
 .capa-info { font-size: 0.78rem; color: var(--text-dim); }
@@ -96,9 +97,10 @@ label.campo > .rotulo { font-size: 0.78rem; color: var(--text-dim); }
 .foto { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
 .foto-previa {
   width: 120px; aspect-ratio: 4 / 3; border-radius: var(--radius); overflow: hidden; flex: none;
-  display: flex; align-items: center; justify-content: center; font-size: 0.78rem; color: var(--text-faint);
-  background: var(--surface-2); border: 1px dashed var(--border-strong);
+  display: flex; align-items: center; justify-content: center; font-size: 0.78rem;
+  background: var(--surface-2); border: 1px solid var(--border-strong);
 }
+.foto-previa .capa-vazia { font-size: 1.9rem; }
 .foto-previa img { width: 100%; height: 100%; object-fit: cover; }
 .foto-acoes { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -111,12 +113,18 @@ label.campo > .rotulo { font-size: 0.78rem; color: var(--text-dim); }
 .numeros { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 6px; }
 .numeros label { display: flex; flex-direction: column; gap: 6px; font-size: 0.78rem; color: var(--text-dim); }
 
+.criar.sem-previa { grid-template-columns: minmax(0, 560px); }
 .previa { position: sticky; top: 16px; display: flex; flex-direction: column; gap: 10px; }
 .previa-titulo { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--gold-soft); }
 
 /* ---------- visualização ---------- */
 .cabecalho { display: flex; gap: 14px; align-items: center; margin-bottom: 16px; }
-.cabecalho-capa { width: 72px; height: 54px; object-fit: cover; border-radius: var(--radius); border: 1px solid var(--border); flex: none; }
+.cabecalho-capa {
+  width: 72px; height: 54px; border-radius: var(--radius); border: 1px solid var(--border); flex: none; overflow: hidden;
+  display: block;
+}
+.cabecalho-capa img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.cabecalho-capa .capa-vazia { font-size: 1.5rem; }
 .titulo-ficha { margin: 0 0 2px; border: 0; padding: 0; font-size: 1.1rem; overflow-wrap: anywhere; }
 
 .paginador { display: flex; align-items: center; justify-content: center; gap: 12px; font-size: 0.84rem; color: var(--text-dim); }
@@ -202,4 +210,84 @@ button:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid 
 @media (prefers-reduced-motion: reduce) {
   .grade.virar, .slot.destaque { animation: none; }
   .slot, .capa-card { transition: none; }
+}
+
+/* ---------- cor da capa ---------- */
+.cores { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.cor {
+  width: 28px; height: 28px; padding: 0; border-radius: 50%; border: 2px solid var(--border-strong);
+}
+.cor:hover { transform: scale(1.08); }
+.cor.ativa { border-color: var(--text); box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--gold); }
+.cor-livre { display: inline-flex; align-items: center; gap: 8px; font-size: 0.8rem; color: var(--text-dim); cursor: pointer; }
+.cor-livre input[type='color'] {
+  width: 32px; height: 28px; padding: 0; border: 1px solid var(--border-strong); border-radius: var(--radius);
+  background: transparent; cursor: pointer;
+}
+
+/* ---------- aviso de cartas fora da coleção ---------- */
+.faixa-falta {
+  display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap;
+  margin-bottom: 14px; padding: 12px 14px; background: var(--gold-wash);
+  border: 1px solid var(--gold-dim); border-radius: var(--radius-lg);
+}
+.aviso-ok {
+  margin: 0 0 12px; padding: 9px 12px; font-size: 0.84rem; color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border-strong); border-radius: var(--radius);
+}
+.slot .falta {
+  position: absolute; top: 4px; right: 4px; width: 20px; height: 20px; display: flex; align-items: center;
+  justify-content: center; border-radius: 50%; font-size: 0.8rem; font-weight: 700; line-height: 1;
+  background: var(--danger); color: #fff; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+.atual.atual-falta { border-color: var(--danger); }
+.atual-acoes { display: flex; flex-direction: column; gap: 6px; align-items: flex-end; flex: none; }
+.aviso-falta { font-size: 0.78rem; font-weight: 600; color: var(--danger); }
+.btn-mini.destaque-btn { color: var(--gold-soft); border-color: var(--gold-dim); }
+.btn-mini.destaque-btn:hover { background: var(--gold-wash); }
+
+/* ---------- escolha: coleção ou busca ---------- */
+.modos { display: flex; gap: 4px; padding: 4px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+.modo {
+  flex: 1; padding: 8px 6px; border: 0; border-radius: var(--radius); background: transparent;
+  color: var(--text-dim); font-weight: 600; font-size: 0.85rem; font-family: var(--font-body);
+}
+.modo.ativa { background: var(--gold); color: #14110a; }
+.busca-api { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 200px); gap: 10px; }
+select {
+  width: 100%; padding: 10px 12px; background: var(--surface-2); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius); font: inherit; font-size: 0.9rem;
+}
+.galeria-item.sem-livres { border-style: dashed; }
+.galeria-item.sem-livres .galeria-info { color: var(--gold-soft); }
+.mono { font-family: var(--font-mono); font-size: 0.66rem; color: var(--text-faint); overflow-wrap: anywhere; }
+.na-colecao { color: var(--gold-soft); }
+
+/* ---------- fichário aberto: página simples e folha dupla ---------- */
+.vista-rotulo { margin: -4px 0 12px; font-weight: 600; color: var(--gold-soft); }
+.livro {
+  position: relative; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 30px;
+  align-items: start;
+}
+.livro::before {
+  content: ''; position: absolute; left: 50%; top: 22px; bottom: 22px; width: 14px; transform: translateX(-50%);
+  background: radial-gradient(circle at center, var(--bg) 0 3.5px, var(--border-strong) 4px 6px, transparent 6.5px) 0 0 / 14px 44px repeat-y;
+  opacity: 0.9; pointer-events: none;
+}
+.livro .folha::before { display: none; }
+.livro .folha { padding: 16px; }
+.pagina-lado { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.lado-rotulo {
+  font-family: var(--font-mono); font-size: 0.68rem; letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-dim); text-align: center;
+}
+.folha-vazia { min-height: 120px; }
+.livro .grade { max-width: calc(var(--cols, 3) * 120px); }
+.livro .grade.virar { animation: none; }
+
+@media (max-width: 720px) {
+  .livro { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .livro::before, .folha-vazia { display: none; }
+  .livro .folha { padding: 12px 12px 12px 34px; }
+  .livro .folha::before { display: block; left: 11px; }
 }
